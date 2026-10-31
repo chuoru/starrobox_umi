@@ -7,7 +7,6 @@ export interface LostSegment {
 	end: number
 }
 
-/** Contiguous runs where tracking is false, as inclusive frame ranges. */
 export function lostSegments(tracking: boolean[]): LostSegment[] {
 	const out: LostSegment[] = []
 	let start = -1
@@ -22,7 +21,6 @@ export function lostSegments(tracking: boolean[]): LostSegment[] {
 	return out
 }
 
-/** The single time cursor. Everything on the screen reads `frame`; nothing else owns time. */
 export function useTimeCursor(
 	count: Ref<number>,
 	fps: Ref<number>,
@@ -115,11 +113,8 @@ export function useTimeCursor(
 		const k = e.key
 		const f = Math.round(fps.value)
 		let handled = true
-		if (k === ' ') {
-			// Space on a focused button would also click it; the cursor owns Space.
-			if (el && el.tagName === 'BUTTON') el.blur()
-			toggle()
-		} else if (k === 'ArrowRight') step(e.shiftKey ? f : 1)
+		if (k === ' ') toggle()
+		else if (k === 'ArrowRight') step(e.shiftKey ? f : 1)
 		else if (k === 'ArrowLeft') step(e.shiftKey ? -f : -1)
 		else if (k === ']') nextKeyframe(1)
 		else if (k === '[') nextKeyframe(-1)

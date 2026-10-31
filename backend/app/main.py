@@ -1,4 +1,3 @@
-"""starrobox_umi backend. Serves the API and, when built, the web UI."""
 import json
 import os
 from pathlib import Path
@@ -18,7 +17,6 @@ app = FastAPI(title="starrobox_umi")
 
 
 def episode_dir(episode_id: str) -> Path:
-	"""Resolve an episode folder. Reject ids that could leave data/episodes/."""
 	if not episode_id or "/" in episode_id or "\\" in episode_id or episode_id.startswith("."):
 		raise HTTPException(status_code=400, detail="invalid episode id")
 	path = DATA_DIR / "episodes" / episode_id
@@ -68,7 +66,6 @@ class StatusUpdate(BaseModel):
 
 @app.patch("/api/episodes/{episode_id}")
 def update_status(episode_id: str, update: StatusUpdate) -> dict:
-	"""Set the curation status. Used by bulk Curate, Exclude, and Reset."""
 	path = episode_dir(episode_id)
 	meta = json.loads((path / "meta.json").read_text())
 	meta["status"] = update.status

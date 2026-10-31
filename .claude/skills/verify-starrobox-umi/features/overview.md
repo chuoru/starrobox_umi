@@ -21,10 +21,11 @@ MSYS_NO_PATHCONV=1 docker compose exec -T backend python3 /workspace/backend/see
 cd web && npm run e2e
 ```
 
-`web/e2e/drive.mjs` drives real Edge through `playwright-core` and prints PASS or FAIL per step. For this screen it covers selection, bulk Curate (confirmed through the API), Escape, a failed `PATCH` (error alert, server unchanged, card rolled back), histogram drag (URL and N / 60 change), and the Open link. It saves `verification-evidence/web/overview-brushed.png`.
+`npm test` in `web/` runs the unit tests for the pure modules (`lens`, `projection`, `virtualGrid`, `pool`). `web/e2e/drive.mjs` drives real Edge through `playwright-core` and prints PASS or FAIL per step. For this screen it covers selection, bulk Curate (confirmed through the API), Escape, a failed `PATCH` (error alert, server unchanged, card rolled back), histogram drag (URL and N / 60 change), the Open link, End and PageUp keyboard focus in the grid, and a resize that changes the column count. It saves `verification-evidence/web/overview-brushed.png`.
 
 ## Gotchas
 
 - The grid is virtualized, so counting `article.card` in the DOM gives about 30, not the number of matches. Read the `N / 60` text instead.
 - The bulk steps change statuses on disk. Re-run the seed command with `--clean` afterward.
-- Not tested at 5,000 episodes. Keyboard arrow navigation between cards and the O shortcut are not driven.
+- Not tested at 5,000 episodes. The O shortcut and the arrow keys other than End and PageUp are not driven.
+- The checks for scrolling and resizing pass on the code from before the refactor too, so they guard behavior but do not prove a bug. `virtualGrid.test.ts` is the regression test for a stale scroll offset.

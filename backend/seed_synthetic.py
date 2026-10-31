@@ -1,9 +1,3 @@
-"""Write synthetic episodes into data/episodes/ so the UI has something to show.
-
-Every episode is marked "synthetic": true and the UI shows a badge for it.
-Usage (from the repo root, inside the backend container):
-	python backend/seed_synthetic.py --count 60
-"""
 import argparse
 import json
 import math
@@ -24,7 +18,7 @@ def make_episode(rng: random.Random, index: int) -> tuple[dict, dict]:
 	fps = 30
 	duration = round(rng.uniform(12, 60), 1)
 	n = int(duration * fps)
-	lost = []  # tracking-lost segments, in samples
+	lost = []
 	for _ in range(rng.choice([0, 0, 1, 2, 3])):
 		start = rng.randint(n // 8, n - n // 5)
 		lost.append((start, min(n, start + rng.randint(fps // 2, fps * 3))))
@@ -41,7 +35,7 @@ def make_episode(rng: random.Random, index: int) -> tuple[dict, dict]:
 	speed = []
 	for i in range(n):
 		if not tracking[i]:
-			speed.append(None)  # not measured: never interpolate across a lost segment
+			speed.append(None)
 		else:
 			j = max(0, i - 1)
 			speed.append(round(math.dist(pos[i], pos[j]) * fps, 4))

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { EpisodeSummary } from '../../api/client'
-import { STATUSES } from './filters'
+import { STATUSES } from './lens'
 
 const props = defineProps<{
 	episode: EpisodeSummary
@@ -11,7 +11,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ toggle: [index: number, ev: MouseEvent | KeyboardEvent]; open: [id: string] }>()
 
-const st = computed(() => STATUSES.find((s) => s.key === props.episode.status)!)
+const st = computed(() => STATUSES[props.episode.status])
 const trkColor = computed(() => {
 	const t = props.episode.tracking_pct
 	return t < 50 ? 'var(--bad)' : t < 75 ? 'var(--imp)' : 'var(--ok)'

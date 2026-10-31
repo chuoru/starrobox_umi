@@ -4,10 +4,6 @@ export interface Palette {
 	[k: string]: string
 }
 
-/**
- * Keeps a canvas crisp on high-DPI and sized to its box, and redraws whenever
- * any reactive value read inside `draw` (or the size) changes. Drawing is in CSS pixels.
- */
 export function useCanvas(
 	canvas: Ref<HTMLCanvasElement | null>,
 	draw: (g: CanvasRenderingContext2D, w: number, h: number, c: Palette) => void,

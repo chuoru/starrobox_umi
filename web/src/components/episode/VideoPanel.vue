@@ -10,7 +10,6 @@ const failed = ref(false)
 const ready = ref(false)
 const src = computed(() => api.videoUrl(props.detail.id))
 
-// The cursor is the clock; the video follows it. While playing we only correct drift.
 watch(() => props.cursor.frame.value, (f) => {
 	const v = video.value
 	if (!v || !ready.value) return

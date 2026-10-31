@@ -66,7 +66,6 @@ useCanvas(canvas, (g, w, h, c) => {
 	g.font = '11px system-ui, sans-serif'
 	g.textBaseline = 'middle'
 
-	// shared time axis
 	const stepS = [1, 2, 5, 10, 15, 30, 60].find((t) => (t / dur) * span >= 48) ?? 60
 	g.textAlign = 'center'
 	for (let t = 0; t <= dur; t += stepS) {
@@ -198,7 +197,6 @@ useCanvas(canvas, (g, w, h, c) => {
 		g.lineWidth = 1
 		g.strokeRect(x0 + 0.5, ly + 0.5, span, lh)
 	}
-	// cursor
 	const cx = Math.round(X(frame)) + 0.5
 	g.strokeStyle = c.fg
 	g.lineWidth = 1.5

@@ -1,4 +1,3 @@
-# Develop on Windows, run on Ubuntu: the backend container is the Ubuntu runtime.
 services:
   backend:
     build:

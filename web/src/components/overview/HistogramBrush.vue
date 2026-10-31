@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { Range } from './filters'
+import type { Range } from './lens'
 
 const props = defineProps<{
 	label: string
@@ -18,7 +18,6 @@ const w = computed(() => (props.hi - props.lo) / n.value)
 const peak = computed(() => Math.max(1, ...props.all))
 const edge = (b: number) => props.lo + b * w.value
 
-/** Selected bins, derived from the filter range. */
 const sel = computed<[number, number] | null>(() => {
 	const r = props.modelValue
 	if (!r) return null
@@ -64,7 +63,6 @@ function move(ev: PointerEvent) {
 function up(ev: PointerEvent) {
 	if (!dragging.value) return
 	dragging.value = false
-	// A plain click on the already-selected single bin toggles the filter off.
 	const s = sel.value
 	if (anchor !== null && last === anchor && wasSingle && s && s[0] === anchor) emit('update:modelValue', null)
 	anchor = null

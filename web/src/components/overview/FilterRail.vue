@@ -1,77 +1,52 @@
 <script setup lang="ts">
-import type { Status } from '../../api/client'
+import { computed } from 'vue'
 import HistogramBrush from './HistogramBrush.vue'
-import { METRICS, STATUSES, type Filters, type RangeKey } from './filters'
+import { METRICS, STATUSES, clearFilters, toggle, update, type Lens } from './lens'
+import type { Facets } from './projection'
 
-export interface HistData {
-	all: number[]
-	match: number[]
-	lo: number
-	hi: number
-}
-export interface TaskRow {
-	task: string
-	count: number
-	total: number
-	curated: number
-}
+const lens = defineModel<Lens>('lens', { required: true })
+const props = defineProps<{ facets: Facets }>()
 
-const props = defineProps<{
-	filters: Filters
-	statusCounts: Record<Status, number>
-	hists: Record<RangeKey, HistData> | null
-	tasks: TaskRow[]
-}>()
-// The rail edits the shared reactive filter object directly (it is the single source of truth).
-
-function toggleStatus(s: Status) {
-	if (props.filters.status.has(s)) props.filters.status.delete(s)
-	else props.filters.status.add(s)
-}
-function toggleTask(t: string) {
-	if (props.filters.tasks.has(t)) props.filters.tasks.delete(t)
-	else props.filters.tasks.add(t)
-}
-const taskPeak = (rows: TaskRow[]) => Math.max(1, ...rows.map((r) => r.total))
+const taskPeak = computed(() => Math.max(1, ...props.facets.tasks.map((r) => r.total)))
 </script>
 
 <template>
 	<aside class="rail" aria-label="Filters">
 		<h3>
 			<span>Status</span>
-			<button v-if="filters.status.size" type="button" class="link" @click="filters.status.clear()">clear</button>
+			<button v-if="lens.status.size" type="button" class="link" @click="lens = clearFilters(lens, 'status')">clear</button>
 		</h3>
 		<div class="chips">
 			<button
-				v-for="s in STATUSES"
-				:key="s.key"
+				v-for="(s, key) in STATUSES"
+				:key="key"
 				type="button"
 				class="chip"
-				:class="{ on: filters.status.has(s.key) }"
-				:aria-pressed="filters.status.has(s.key)"
-				@click="toggleStatus(s.key)"
+				:class="{ on: lens.status.has(key) }"
+				:aria-pressed="lens.status.has(key)"
+				@click="lens = toggle(lens, 'status', key)"
 			>
 				<span class="dot" :style="{ background: s.color }" />{{ s.label }}
-				<span class="cnt">{{ statusCounts[s.key] }}</span>
+				<span class="cnt">{{ facets.status[key] }}</span>
 			</button>
 		</div>
 
-		<template v-if="hists">
+		<template v-if="facets.hists">
 			<HistogramBrush
-				v-for="m in METRICS"
-				:key="m.key"
+				v-for="(m, key) in METRICS"
+				:key="key"
 				:label="m.label"
 				:unit="m.unit"
-				:all="hists[m.key].all"
-				:match="hists[m.key].match"
-				:lo="hists[m.key].lo"
-				:hi="hists[m.key].hi"
-				:model-value="filters.ranges[m.key]"
-				@update:model-value="filters.ranges[m.key] = $event"
+				:all="facets.hists[key].all"
+				:match="facets.hists[key].match"
+				:lo="facets.hists[key].lo"
+				:hi="facets.hists[key].hi"
+				:model-value="lens[key]"
+				@update:model-value="lens = update(lens, key, $event)"
 			/>
 		</template>
 		<template v-else>
-			<div v-for="m in METRICS" :key="m.key" class="hb-skel">
+			<div v-for="(m, key) in METRICS" :key="key" class="hb-skel">
 				<h3>{{ m.label }}</h3>
 				<div class="sk" />
 			</div>
@@ -79,27 +54,27 @@ const taskPeak = (rows: TaskRow[]) => Math.max(1, ...rows.map((r) => r.total))
 
 		<h3 class="tasks-h">
 			<span>Task coverage</span>
-			<button v-if="filters.tasks.size" type="button" class="link" @click="filters.tasks.clear()">clear</button>
+			<button v-if="lens.task.size" type="button" class="link" @click="lens = clearFilters(lens, 'task')">clear</button>
 		</h3>
 		<ul class="tasks">
-			<li v-for="t in tasks" :key="t.task">
+			<li v-for="t in facets.tasks" :key="t.task">
 				<button
 					type="button"
 					class="task"
-					:class="{ on: filters.tasks.has(t.task), thin: t.curated === 0 }"
-					:aria-pressed="filters.tasks.has(t.task)"
+					:class="{ on: lens.task.has(t.task), thin: t.curated === 0 }"
+					:aria-pressed="lens.task.has(t.task)"
 					:title="`${t.count} matching other filters, ${t.total} total, ${t.curated} curated`"
-					@click="toggleTask(t.task)"
+					@click="lens = toggle(lens, 'task', t.task)"
 				>
 					<span class="name">{{ t.task }}</span>
 					<span class="bar">
-						<i class="all" :style="{ width: (t.total / taskPeak(tasks)) * 100 + '%' }" />
-						<i class="now" :style="{ width: (t.count / taskPeak(tasks)) * 100 + '%' }" />
+						<i class="all" :style="{ width: (t.total / taskPeak) * 100 + '%' }" />
+						<i class="now" :style="{ width: (t.count / taskPeak) * 100 + '%' }" />
 					</span>
 					<span class="n">{{ t.count }}</span>
 				</button>
 			</li>
-			<li v-if="!tasks.length" class="none">No tasks yet.</li>
+			<li v-if="!facets.tasks.length" class="none">No tasks yet.</li>
 		</ul>
 		<p class="hint">
 			Drag across a histogram to filter. Grey bars: all episodes. Blue: episodes matching the other filters. Red task

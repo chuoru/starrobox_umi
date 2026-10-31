@@ -18,7 +18,6 @@ const bounds = computed(() => {
 	const r = Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2], 0.2)
 	return { c, r, floor: lo[2] }
 })
-/** Heading from the path itself (no orientation in the data). */
 function heading(i: number): number {
 	const p = P.value
 	const a = p[Math.max(0, i - 3)], b = p[Math.min(p.length - 1, i + 3)]
@@ -42,7 +41,6 @@ useCanvas(canvas, (g, w, h, c) => {
 		const x1 = x * cy - y * sy, y1 = x * sy + y * cy
 		return [w / 2 + x1 * s, h / 2 + 4 - (z * cp + y1 * sp) * s]
 	}
-	// ground grid on the lowest point of the path
 	g.lineWidth = 1
 	g.strokeStyle = c.line
 	const step = r > 1.5 ? 0.25 : 0.1
@@ -54,7 +52,6 @@ useCanvas(canvas, (g, w, h, c) => {
 		a = proj([ctr[0] - n * step, ctr[1] + o, floor]); b = proj([ctr[0] + n * step, ctr[1] + o, floor])
 		g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke()
 	}
-	// runs of tracked / lost samples
 	const t = props.series.tracking
 	const pts = P.value
 	g.lineJoin = 'round'
@@ -77,13 +74,11 @@ useCanvas(canvas, (g, w, h, c) => {
 		g.setLineDash([]); g.globalAlpha = 1
 		st = i
 	}
-	// keyframes
 	g.fillStyle = c.kf
 	for (const k of props.series.keyframes) {
 		if (!pts[k]) continue
 		const q = proj(pts[k]); g.beginPath(); g.arc(q[0], q[1], 2.2, 0, 7); g.fill()
 	}
-	// gripper marker
 	const p = pts[frame]
 	if (!p) return
 	const yw = heading(frame)

@@ -2,8 +2,6 @@ import { chromium } from 'playwright-core'
 import { mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-// Needs the compose stack up, 60 seeded synthetic episodes, and Microsoft Edge installed.
-// The bulk-status steps change episode statuses. Restore them with backend/seed_synthetic.py --clean.
 const BASE = process.env.UMI_URL ?? 'http://localhost:5173'
 const EVIDENCE = fileURLToPath(new URL('../../verification-evidence/web/', import.meta.url))
 mkdirSync(EVIDENCE, { recursive: true })
@@ -18,7 +16,6 @@ const errors = []
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()) })
 page.on('pageerror', e => errors.push(String(e)))
 
-// ---- Overview
 await page.goto(`${BASE}/overview`); await page.waitForSelector('article.card')
 const cards = page.locator('article.card')
 check('overview renders cards', (await cards.count()) > 3, `${await cards.count()} in DOM`)
@@ -38,7 +35,6 @@ check('bulk Curate persisted through API', afterCurate.every(e => e.status === '
 await page.keyboard.press('Escape'); await sleep(200)
 check('Escape clears selection', (await page.locator('[role=toolbar][aria-label="Bulk actions"]').count()) === 0)
 
-// rollback on failure
 errors.length = 0
 await page.route('**/api/episodes/*', route => route.request().method() === 'PATCH' ? route.abort() : route.continue())
 const target = await cards.nth(5).getAttribute('aria-label'); const tid = target.split(',')[0]
@@ -53,7 +49,6 @@ check('failed PATCH leaves server status unchanged', afterFail === before, `${be
 check('failed PATCH rolls back card in UI', !/excluded/i.test(cardLabel) || before === 'excluded', cardLabel.slice(0, 60))
 await page.unroute('**/api/episodes/*'); await page.keyboard.press('Escape')
 
-// histogram brush
 const count = async () => +((await page.evaluate(() => document.body.innerText)).match(/(\d+)\s*\/\s*60/)?.[1])
 const total0 = await count()
 const hist = page.locator('[role=group][aria-label^="Duration"]').first()
@@ -66,12 +61,50 @@ check('histogram drag writes filter to URL', /dur=/.test(url), url.replace(BASE,
 check('histogram drag reduces matching episodes (N / 60)', total1 < total0, `${total0} -> ${total1}`)
 await page.screenshot({ path: EVIDENCE + 'overview-brushed.png' })
 
-// open link
+// stale window: scroll to the bottom, then change the filter so the list shrinks
+await page.goto(`${BASE}/overview`); await page.waitForSelector('article.card')
+await page.evaluate(() => { document.querySelector('.scroller').scrollTop = 1e6 }); await sleep(300)
+const hist2 = page.locator('[role=group][aria-label^="Duration"]').first(); const hb = await hist2.boundingBox()
+await page.mouse.move(hb.x + hb.width * 0.7, hb.y + hb.height / 2); await page.mouse.down()
+await page.mouse.move(hb.x + hb.width * 0.95, hb.y + hb.height / 2, { steps: 6 }); await page.mouse.up(); await sleep(500)
+check('shrinking the list from the bottom renders cards from the top', (await page.locator('article.card[data-index="0"]').count()) === 1)
+check('the scroller is back at the top after a filter change', (await page.evaluate(() => document.querySelector('.scroller').scrollTop)) === 0)
+
+// stale window without a filter change: filter by status, scroll down, curate the last card so it leaves the list
+await page.goto(`${BASE}/overview?status=slam_ok`); await page.waitForSelector('article.card')
+await page.evaluate(() => { document.querySelector('.scroller').scrollTop = 1e6 }); await sleep(300)
+await page.locator('article.card').last().click(); await sleep(100)
+await page.locator('[role=toolbar][aria-label="Bulk actions"]').getByRole('button', { name: 'Curate' }).click(); await sleep(1000)
+check('curating a card out of a filtered list leaves cards on screen', (await page.locator('article.card').count()) > 0)
+
+// Escape while typing in the search box must not clear the selection
+await page.goto(`${BASE}/overview`); await page.waitForSelector('article.card')
+await page.locator('article.card').first().click()
+await page.getByLabel('Search episodes').click(); await page.keyboard.press('Escape'); await sleep(150)
+check('Escape in the search box keeps the selection', (await page.locator('[role=toolbar][aria-label="Bulk actions"]').count()) === 1)
+await page.locator('body').click({ position: { x: 5, y: 5 } }); await page.keyboard.press('Escape'); await sleep(150)
+// grid keyboard: End moves focus to the last card and scrolls it into view, PageUp moves back
+await page.goto(`${BASE}/overview`); await page.waitForSelector('article.card')
+await page.locator('article.card').first().focus(); await page.keyboard.press('End'); await sleep(400)
+const focusedIndex = () => page.evaluate(() => document.activeElement?.dataset?.index ?? null)
+check('End focuses the last card', (await focusedIndex()) === '59', `index ${await focusedIndex()}`)
+const visibleCards = () => page.evaluate(() => {
+	const r = document.querySelector('.scroller').getBoundingClientRect()
+	return [...document.querySelectorAll('article.card')].filter((c) => { const b = c.getBoundingClientRect(); return b.bottom > r.top && b.top < r.bottom }).length
+})
+check('the last card is on screen after End', (await visibleCards()) > 0)
+await page.keyboard.press('PageUp'); await sleep(300)
+check('PageUp moves focus back', +(await focusedIndex()) < 59, `index ${await focusedIndex()}`)
+
+// resize at the bottom: the column count changes, and the grid must not show a blank area
+await page.setViewportSize({ width: 700, height: 950 }); await sleep(500)
+check('cards stay on screen after a resize that changes the column count', (await visibleCards()) > 0)
+await page.setViewportSize({ width: 1500, height: 950 }); await sleep(300)
+
 await page.goto(`${BASE}/overview`); await page.waitForSelector('article.card')
 await page.locator('article.card a, article.card [aria-label^="Open"]').first().click(); await page.waitForURL(/\/episode\//)
 check('Open navigates to /episode/<id>', /\/episode\/syn_/.test(page.url()), page.url().replace(BASE, ''))
 
-// ---- Episode keyboard
 const frame = async () => { const t = await page.evaluate(() => document.body.innerText); const m = t.match(/frame\s+(\d+)\s*\/\s*(\d+)/); return m ? +m[1] : null }
 await page.goto(`${BASE}/episode/syn_0002`); await page.waitForFunction(() => /frame\s+\d+\s*\/\s*\d+/.test(document.body.innerText))
 await page.locator('body').click({ position: { x: 5, y: 5 } })
@@ -92,14 +125,12 @@ await page.keyboard.press('BracketRight'); await sleep(150); const fk = await fr
 check(']' + ' jumps to next keyframe', fk > fn, `${fn} -> ${fk}`)
 await page.keyboard.press('End'); await sleep(150); const fe = await frame()
 check('End goes to last frame', fe > 1000, `frame ${fe}`)
-// drag-scrub on timeline
 await page.keyboard.press('Home')
 const tl = page.locator('canvas').last(); const tb = await tl.boundingBox()
 await page.mouse.move(tb.x + tb.width * 0.2, tb.y + tb.height * 0.5); await page.mouse.down()
 await page.mouse.move(tb.x + tb.width * 0.5, tb.y + tb.height * 0.5, { steps: 6 }); await page.mouse.up(); await sleep(200)
 const fs = await frame()
 check('dragging the timeline scrubs', fs > 100, `frame ${fs}`)
-// handler cleanup: leave the page, keys must not move anything / throw
 await page.goto(`${BASE}/overview`); await page.waitForSelector('article.card'); await page.keyboard.press('Space'); await sleep(200)
 
 errors.splice(0, errors.length, ...errors.filter(e => !/ERR_FAILED/.test(e)))
