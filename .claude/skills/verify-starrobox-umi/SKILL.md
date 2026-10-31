@@ -1,13 +1,13 @@
 ---
 name: verify-starrobox-umi
-description: Verify starrobox_umi, the app that converts Insta360 and GoPro recordings into training data with ORB-SLAM3. Use when you need to prove that the Ubuntu Docker runtime builds and that ORB-SLAM3 runs, or when you change anything under docker/. The app's desktop GUI does not exist yet, so this skill covers the runtime layer only.
+description: Verify starrobox_umi, the app that converts Insta360 and GoPro recordings into training data with ORB-SLAM3. Use when you need to prove that the Ubuntu Docker runtime builds and that ORB-SLAM3 runs, or when you change anything under docker/. The web UI is a shell with one screen wired, so this skill covers the runtime, the API, and the UI shell.
 ---
 
 # Verify starrobox_umi
 
-Developers work on Windows. The app runs on Ubuntu 22.04 inside the Docker image `starrobox-umi:dev`. Every verification runs in that container, never on the Windows host.
+Developers work on Windows. The backend (FastAPI) runs on Ubuntu 22.04 inside the Docker image `starrobox-umi:dev`. The web UI (Vue 3 and Vite) runs in a Node container and opens in a browser on Windows. No X server is needed.
 
-**Current scope.** The repo has no application code yet. This skill proves the runtime: the image builds and ORB-SLAM3 binaries load. When the desktop GUI lands, add its launch and drive steps under **Drive** and add feature files under `features/`.
+**Current scope.** This skill proves the runtime (the image builds and the ORB-SLAM3 binaries load), the API (`/api/health`, `/api/episodes`), and the UI shell (header, navigation, and the Overview screen). The other four screens are placeholders. When a screen is built, add its drive steps under **Drive** and a feature file under `features/`.
 
 ## Launch
 
@@ -39,17 +39,21 @@ It starts a container named `umi-verify-<timestamp>`, runs `Examples/Monocular-I
 
 This proves that ORB-SLAM3 and its dependencies link on Ubuntu. It does not prove tracking quality. For that, run the binary on a EuRoC sequence. Download the sequence into `data/` first, because `data/` is ignored by git.
 
-### Drive the GUI on the Windows desktop
-
-The Qt window (`app/main.py`) runs in the container and draws on the Windows desktop through VcXsrv. VcXsrv must be running first (`tasklist | grep -i vcxsrv`).
+### Drive the web app
 
 ```sh
-MSYS_NO_PATHCONV=1 docker run -d --name umi-gui -e DISPLAY=host.docker.internal:0.0 -e QT_QPA_PLATFORM=xcb -v "$PWD:/workspace" starrobox-umi:dev python3 app/main.py
+docker compose up -d
 ```
 
-Wait about 6 seconds, then capture the screen with PowerShell (`System.Drawing` `CopyFromScreen`) into `verification-evidence/gui/desktop.png`. The window title reads `starrobox_umi@<container id>`. Remove the container with `docker rm -f umi-gui`. The screenshot captures the whole desktop, so check it for unrelated windows before you share it.
+Wait until `curl -sf localhost:5173/api/health` prints `{"status":"ok",...}`. The first start takes about a minute because the `web` service runs `npm install`. That request goes through the Vite proxy to the backend, so one call proves both services.
 
-For headless runs, use `xvfb-run` (already in the image).
+Then screenshot the UI in headless Edge or Chrome and save it to `verification-evidence/web/`:
+
+```sh
+msedge --headless=new --disable-gpu --virtual-time-budget=5000 --window-size=1200,500 --screenshot=<abs path>/verification-evidence/web/overview.png http://localhost:5173/overview
+```
+
+The page must show `backend: up` in the header. Open `http://localhost:8000/docs` for the API explorer. Run `docker compose down` when you finish.
 
 ## Evidence
 
@@ -66,7 +70,7 @@ Standards for any proof:
 
 ## Cleanup
 
-`smoke.sh` removes its own container through a `trap`. To remove anything else the run created, remove it by name:
+`smoke.sh` removes its own container through a `trap`. Stop the web stack with `docker compose down`. To remove anything else the run created, remove it by name:
 
 ```sh
 docker rm -f umi-verify-<timestamp>
