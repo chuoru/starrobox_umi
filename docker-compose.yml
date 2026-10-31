@@ -1,0 +1,10 @@
+# Develop on Windows, run on Ubuntu: the container is the Ubuntu runtime.
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: starrobox-umi:dev
+    volumes:
+      - .:/workspace
+    command: sleep infinity

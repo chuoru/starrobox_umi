@@ -1,0 +1,5 @@
+data/*
+!data/.gitkeep
+verification-evidence/
+decisions.tsv
+__pycache__/
