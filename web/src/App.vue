@@ -20,7 +20,6 @@ onMounted(async () => {
 		<nav>
 			<RouterLink to="/overview">Overview</RouterLink>
 			<RouterLink to="/triage">Triage</RouterLink>
-			<RouterLink to="/episode">Episode</RouterLink>
 			<RouterLink to="/export">Annotate and export</RouterLink>
 			<RouterLink to="/model-view">Model view</RouterLink>
 		</nav>

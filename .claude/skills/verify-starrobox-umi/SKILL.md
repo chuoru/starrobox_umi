@@ -7,7 +7,7 @@ description: Verify starrobox_umi, the app that converts Insta360 and GoPro reco
 
 Developers work on Windows. The backend (FastAPI) runs on Ubuntu 22.04 inside the Docker image `starrobox-umi:dev`. The web UI (Vue 3 and Vite) runs in a Node container and opens in a browser on Windows. No X server is needed.
 
-**Current scope.** This skill proves the runtime (the image builds and the ORB-SLAM3 binaries load), the API (`/api/health`, `/api/episodes`), and the UI shell (header, navigation, and the Overview screen). The other four screens are placeholders. When a screen is built, add its drive steps under **Drive** and a feature file under `features/`.
+**Current scope.** This skill proves the runtime (the image builds and the ORB-SLAM3 binaries load), the API (`/api/health`, `/api/episodes`), and the UI shell (header and navigation), plus the Overview and Episode screens. The other three screens are placeholders. When a screen is built, add its drive steps under **Drive** and a feature file under `features/`.
 
 ## Launch
 
@@ -53,7 +53,7 @@ Then screenshot the UI in headless Edge or Chrome and save it to `verification-e
 msedge --headless=new --disable-gpu --virtual-time-budget=5000 --window-size=1200,500 --screenshot=<abs path>/verification-evidence/web/overview.png http://localhost:5173/overview
 ```
 
-The page must show `backend: up` in the header. Open `http://localhost:8000/docs` for the API explorer. Run `docker compose down` when you finish.
+For the Overview and Episode screens, run `npm run e2e` in `web/` instead. It drives real interactions and keys. See [features/overview.md](features/overview.md). The page must show `backend: up` in the header. Open `http://localhost:8000/docs` for the API explorer. Run `docker compose down` when you finish.
 
 ## Evidence
 

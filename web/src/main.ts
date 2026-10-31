@@ -8,7 +8,7 @@ const router = createRouter({
 		{ path: '/', redirect: '/overview' },
 		{ path: '/overview', component: () => import('./views/OverviewView.vue'), meta: { title: 'Overview' } },
 		{ path: '/triage', component: () => import('./views/PlaceholderView.vue'), meta: { title: 'Triage', sketch: '03-quality-curation.html' } },
-		{ path: '/episode', component: () => import('./views/PlaceholderView.vue'), meta: { title: 'Episode', sketch: '02-episode-viewer.html' } },
+		{ path: '/episode/:id', component: () => import('./views/EpisodeView.vue'), meta: { title: 'Episode' } },
 		{ path: '/export', component: () => import('./views/PlaceholderView.vue'), meta: { title: 'Annotate and export', sketch: '04-annotate-split-export.html' } },
 		{ path: '/model-view', component: () => import('./views/PlaceholderView.vue'), meta: { title: 'Model view', sketch: '05-model-view.html' } },
 	],
