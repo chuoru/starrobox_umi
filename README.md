@@ -22,26 +22,27 @@ TODO: list the tested camera models and firmware versions.
 
 ## Requirements
 
-- TODO: operating system (the development machine runs Windows 11)
-- TODO: ORB-SLAM3 version or commit, and how the app finds it
-- TODO: language runtime and package manager versions
-- TODO: GPU or CPU requirements, if any
+- Docker with Compose. On Windows, use Docker Desktop with WSL2.
+- A browser.
+- Node.js 22, only if you run the frontend outside Docker.
 
-## Install
+## Architecture
 
-TODO: write the exact commands. Include the step that builds ORB-SLAM3.
+- `backend/`: FastAPI. It exposes `/api/*` and runs ORB-SLAM3, which is built into the Ubuntu 22.04 image from `docker/Dockerfile`.
+- `web/`: Vue 3 with Vite and TypeScript. The Vite dev server proxies `/api` to the backend.
+- `docs/ux/`: design sketches for each screen. Build the screens from them.
 
-```sh
-# TODO
-```
-
-## Start the app
-
-TODO: write the exact command, and the address of the user interface if it runs in a browser.
+## Install and start
 
 ```sh
-# TODO
+docker compose up -d --build
 ```
+
+The first build compiles ORB-SLAM3 and takes about 20 minutes. Later builds use the cache.
+
+Open `http://localhost:5173`. The header shows `backend: up` when the API answers. The API explorer is at `http://localhost:8000/docs`. To stop the stack, run `docker compose down`.
+
+TODO: document how to build the frontend into `web/dist` so the backend serves it in one container.
 
 ## Convert a recording
 

@@ -3,3 +3,6 @@ data/*
 verification-evidence/
 decisions.tsv
 __pycache__/
+node_modules/
+web/dist/
+*.pyc

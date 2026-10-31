@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Annotate, Split, Export</title>
+<style>
+:root{--bg:#14171c;--panel:#1c2027;--panel2:#232831;--line:#2f3541;--fg:#e4e8ee;--mut:#8f99a8;--acc:#4da3ff;--ok:#4cc38a;--warn:#f0b429;--err:#ff6b6b;--train:#4da3ff;--val:#c792ea}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.45 system-ui,Segoe UI,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{font-size:14px;margin:0}
+.synth{background:#4a3a00;color:#ffd666;border:1px solid #7a6000;padding:2px 8px;border-radius:10px;font-size:11px}
+nav{display:flex;gap:2px;margin-left:auto}
+nav button{background:none;border:1px solid transparent;color:var(--mut);padding:6px 12px;cursor:pointer;border-radius:6px;font:inherit}
+nav button.on{background:var(--panel2);color:var(--fg);border-color:var(--line)}
+.status{display:flex;gap:14px;padding:6px 14px;background:var(--panel2);border-bottom:1px solid var(--line);font-size:12px;color:var(--mut);flex-wrap:wrap}
+.status b{color:var(--fg)}
+.pill{padding:1px 8px;border-radius:10px;font-size:11px;border:1px solid var(--line)}
+.pill.ok{color:var(--ok);border-color:var(--ok)}.pill.err{color:var(--err);border-color:var(--err)}.pill.warn{color:var(--warn);border-color:var(--warn)}
+main{padding:12px 14px}
+section{display:none}section.on{display:block}
+.cols{display:grid;grid-template-columns:minmax(300px,1fr) minmax(360px,1.3fr);gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 8px}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);font-size:12px}
+th{color:var(--mut);font-weight:500}
+tr.sel{background:#243349}
+tbody tr{cursor:pointer}
+tr:hover td{background:#1f2630}
+.scroll{max-height:430px;overflow:auto}
+textarea,input[type=text],input[type=number],select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:5px;padding:5px 7px;font:inherit}
+textarea{width:100%;min-height:54px;resize:vertical}
+button.b{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:5px;padding:4px 10px;cursor:pointer;font:inherit}
+button.b:hover{border-color:var(--acc)}
+button.p{background:var(--acc);color:#04121f;border-color:var(--acc);font-weight:600}
+button:disabled{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:6px;align-items:center;margin:4px 0;flex-wrap:wrap}
+.mut{color:var(--mut)}
+.tag{display:inline-block;padding:0 6px;border-radius:4px;font-size:11px;background:var(--panel2);border:1px solid var(--line)}
+.tag.train{color:var(--train);border-color:var(--train)}.tag.val{color:var(--val);border-color:var(--val)}.tag.none{color:var(--warn);border-color:var(--warn)}
+.alert{border:1px solid var(--err);background:#2a1618;border-radius:6px;padding:8px 10px;margin-bottom:8px}
+.alert.ok{border-color:var(--ok);background:#13241c}
+.alert.warn{border-color:var(--warn);background:#2a2412}
+.alert b{display:block;margin-bottom:2px}
+.timeline{position:relative;height:22px;background:var(--bg);border:1px solid var(--line);border-radius:4px;margin:6px 0}
+.timeline i{position:absolute;top:2px;bottom:2px;background:var(--acc);opacity:.7;border-radius:3px}
+.bar{height:10px;background:var(--bg);border-radius:5px;overflow:hidden;display:flex;border:1px solid var(--line)}
+.bar span{display:block;height:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center;margin:6px 0}
+.big{font-size:20px;font-weight:600}
+.kv{display:grid;grid-template-columns:auto auto;gap:2px 16px;justify-content:start}
+.kv div:nth-child(odd){color:var(--mut)}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;overflow:auto;font-size:11.5px;margin:6px 0 0;max-height:240px}
+.chk{display:inline-flex;gap:6px;align-items:center}
+@media(max-width:820px){.cols,.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>starrobox_umi / Dataset: annotate, split, export</h1>
+  <span class="synth">SYNTHETIC DATA: invented episodes, not real recordings</span>
+  <nav id="nav">
+    <button data-t="annotate" class="on">1 Annotate</button>
+    <button data-t="split">2 Split</button>
+    <button data-t="export">3 Export</button>
+  </nav>
+</header>
+<div class="status" id="status"></div>
+
+<main>
+<!-- ============ ANNOTATE ============ -->
+<section id="annotate" class="on">
+  <div class="cols">
+    <div>
+      <div class="card">
+        <h2>Episodes (click to edit, tick to bulk-apply)</h2>
+        <div class="row">
+          <button class="b" id="selAllNo">Select episodes with no instruction</button>
+          <button class="b" id="selClear">Clear</button>
+        </div>
+        <div class="scroll"><table><thead><tr><th></th><th>Episode</th><th>Scene / session</th><th>Dur</th><th>Instr.</th></tr></thead><tbody id="epRows"></tbody></table></div>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="bulkText" placeholder="Bulk text for ticked episodes" style="flex:1;min-width:160px">
+          <button class="b" id="bulkApply">Apply as primary</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" id="editor">
+        <h2>Instruction editor</h2>
+        <div id="edBody"></div>
+      </div>
+      <div class="card">
+        <h2>Coverage and variety</h2>
+        <div id="cover"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SPLIT ============ -->
+<section id="split">
+  <div class="cols">
+    <div class="card">
+      <h2>Assign by group (whole group moves together)</h2>
+      <div class="row">
+        <span class="mut">Group unit:</span>
+        <select id="unit"><option value="scene">scene (strict, recommended)</option><option value="session">session</option></select>
+        <button class="b" id="auto">Auto-split ~80/20</button>
+        <button class="b" id="resetSplit">Clear all</button>
+      </div>
+      <table><thead><tr><th>Group</th><th>Episodes</th><th>Minutes</th><th>Split</th></tr></thead><tbody id="grpRows"></tbody></table>
+      <h2 style="margin-top:12px">Per-episode override (advanced)</h2>
+      <div class="row"><select id="ovEp"></select><select id="ovVal"><option value="train">train</option><option value="val">val</option></select><button class="b" id="ovApply">Override</button></div>
+      <div class="mut">Overrides can break the group rule on purpose. The checker below will say so.</div>
+    </div>
+    <div>
+      <div class="card"><h2>Leak check</h2><div id="leaks"></div></div>
+      <div class="card"><h2>Balance</h2><div id="balance"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EXPORT ============ -->
+<section id="export">
+  <div class="cols">
+    <div class="card">
+      <h2>Export options</h2>
+      <div class="field"><label>Target format</label><select id="fmt"><option value="lerobot">LeRobot dataset v2</option><option value="rlds">RLDS (TFRecord)</option><option value="both">Both</option></select></div>
+      <div class="field"><label>Action representation</label><select id="act">
+        <option value="rel_ee_grip">Relative EE pose + gripper width (7D)</option>
+        <option value="abs_ee_grip">Absolute EE pose + gripper width (7D)</option>
+        <option value="rel_ee_only">Relative EE pose only (6D)</option></select></div>
+      <div class="field"><label>Rotation encoding</label><select id="rot"><option value="6">6D rotation (+3 pos, +1 grip = 10D)</option><option value="3" selected>Axis-angle (3)</option></select></div>
+      <div class="field"><label>Action chunk length</label><input type="number" id="chunk" value="16" min="1" max="128"></div>
+      <div class="field"><label>Image resolution</label><select id="res"><option value="224">224 x 224</option><option value="256">256 x 256</option><option value="384">384 x 384</option><option value="480">480 x 480</option></select></div>
+      <div class="field"><label>Frame rate</label><select id="fps"><option value="60">60 fps (source)</option><option value="30" selected>30 fps</option><option value="15">15 fps</option><option value="10">10 fps</option></select></div>
+      <div class="field"><label>Include</label><div><label class="chk"><input type="checkbox" id="imu" checked>IMU</label> <label class="chk"><input type="checkbox" id="seg" checked>sub-task text</label> <label class="chk"><input type="checkbox" id="para" checked>paraphrases</label></div></div>
+      <div class="field"><label>Output folder</label><input type="text" id="out" value="/data/export/umi_synth_v1"></div>
+    </div>
+    <div>
+      <div class="card"><h2>Dry-run summary (nothing is written)</h2><div id="sumry"></div></div>
+      <div class="card">
+        <div class="row"><button class="b p" id="dry">Run dry-run plan</button><button class="b" id="doExport" disabled>Export</button><span id="blockWhy" class="mut"></span></div>
+        <pre id="plan">Press "Run dry-run plan" to list the files that would be created.</pre>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+(function(){
+"use strict";
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+/* ---- synthetic data ---- */
+var scenes={kitchen_a:["s01","s02"],kitchen_b:["s03"],office_1:["s04","s05"],lab_2:["s06"]};
+var tasks=[
+ ["pick up the red cup","put the cup on the tray"],
+ ["fold the towel in half"],
+ ["open the drawer","close the drawer"],
+ ["wipe the table with the sponge"]];
+var eps=[];
+(function(){
+  var n=1,seed=7;
+  function rnd(){seed=(seed*16807)%2147483647;return seed/2147483647;}
+  Object.keys(scenes).forEach(function(sc,si){
+    scenes[sc].forEach(function(se){
+      var cnt=3+Math.floor(rnd()*3);
+      for(var k=0;k<cnt;k++){
+        var dur=Math.round(18+rnd()*40);
+        var e={id:"ep_"+(n<10?"00":"0")+n,scene:sc,session:se,dur:dur,primary:"",paras:[],segs:[],split:null};
+        n++;
+        eps.push(e);
+      }
+    });
+  });
+  // pre-seed some annotations
+  var seeds=["pick up the red cup and place it on the tray","Pick up the red cup and place it on the tray.","put the red cup on the tray","fold the towel in half","fold the towel in half","open the drawer then close it","wipe the table with the sponge"];
+  for(var i=0;i<seeds.length;i++){eps[i*2].primary=seeds[i];}
+  eps[0].paras=["grab the red mug and set it on the tray"];
+  eps[0].segs=[{a:0,b:9,t:"reach the cup"},{a:9,b:22,t:"grasp and lift"}];
+})();
+var sel=eps[0].id, ticked={};
+
+function byId(id){for(var i=0;i<eps.length;i++)if(eps[i].id===id)return eps[i];return null;}
+function norm(s){return s.toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();}
+function instrCount(e){return (e.primary.trim()?1:0)+e.paras.filter(function(p){return p.trim();}).length;}
+
+/* ---- tabs ---- */
+var tabs=document.querySelectorAll("#nav button");
+Array.prototype.forEach.call(tabs,function(b){b.addEventListener("click",function(){
+  Array.prototype.forEach.call(tabs,function(x){x.classList.toggle("on",x===b);});
+  ["annotate","split","export"].forEach(function(t){$(t).classList.toggle("on",t===b.dataset.t);});
+});});
+
+/* ---- annotate ---- */
+function renderRows(){
+  var h="";
+  eps.forEach(function(e){
+    h+='<tr data-id="'+e.id+'" class="'+(e.id===sel?"sel":"")+'"><td><input type="checkbox" data-tk="'+e.id+'"'+(ticked[e.id]?" checked":"")+'></td><td>'+e.id+'</td><td>'+e.scene+' / '+e.session+'</td><td>'+e.dur+'s</td><td>'+(e.primary.trim()?'<span class="tag">'+instrCount(e)+'</span>':'<span class="tag none">none</span>')+'</td></tr>';
+  });
+  $("epRows").innerHTML=h;
+}
+$("epRows").addEventListener("click",function(ev){
+  var t=ev.target;
+  if(t.dataset&&t.dataset.tk){ticked[t.dataset.tk]=t.checked;return;}
+  var tr=t.closest("tr");if(!tr)return;
+  sel=tr.dataset.id;renderRows();renderEditor();
+});
+function renderEditor(){
+  var e=byId(sel);
+  var h='<div class="row"><b>'+e.id+'</b><span class="mut">'+e.scene+' / '+e.session+', '+e.dur+' s</span></div>';
+  h+='<div class="mut">Primary instruction (whole episode)</div><textarea id="edPrim" placeholder="e.g. pick up the red cup and place it on the tray">'+esc(e.primary)+'</textarea>';
+  h+='<div class="mut" style="margin-top:8px">Paraphrases (same meaning, different words)</div>';
+  e.paras.forEach(function(p,i){h+='<div class="row"><input type="text" style="flex:1" data-pi="'+i+'" value="'+esc(p)+'"><button class="b" data-pd="'+i+'">remove</button></div>';});
+  h+='<div class="row"><button class="b" id="addPara">+ paraphrase</button></div>';
+  h+='<div class="mut" style="margin-top:8px">Sub-tasks (optional, seconds on this episode timeline)</div><div class="timeline">';
+  e.segs.forEach(function(s){h+='<i style="left:'+(100*s.a/e.dur)+'%;width:'+Math.max(1,100*(s.b-s.a)/e.dur)+'%" title="'+esc(s.t)+'"></i>';});
+  h+='</div>';
+  e.segs.forEach(function(s,i){h+='<div class="row"><input type="number" style="width:60px" data-sa="'+i+'" value="'+s.a+'"> to <input type="number" style="width:60px" data-sb="'+i+'" value="'+s.b+'"><input type="text" style="flex:1" data-st="'+i+'" value="'+esc(s.t)+'"><button class="b" data-sd="'+i+'">remove</button></div>';});
+  h+='<div class="row"><button class="b" id="addSeg">+ sub-task</button> <span class="mut" id="segWarn"></span></div>';
+  $("edBody").innerHTML=h;
+  segCheck();
+}
+function segCheck(){
+  var e=byId(sel),w=[];
+  e.segs.forEach(function(s,i){
+    if(!(s.b>s.a))w.push("sub-task "+(i+1)+": end must be after start");
+    if(s.b>e.dur)w.push("sub-task "+(i+1)+": ends past episode length");
+    for(var j=0;j<i;j++){var o=e.segs[j];if(s.a<o.b&&o.a<s.b){w.push("sub-tasks "+(j+1)+" and "+(i+1)+" overlap");}}
+  });
+  var el=$("segWarn");if(el){el.textContent=w.join("; ");el.style.color=w.length?"var(--err)":"";}
+}
+$("edBody").addEventListener("input",function(ev){
+  var e=byId(sel),t=ev.target;
+  if(t.id==="edPrim")e.primary=t.value;
+  else if(t.dataset.pi!==undefined)e.paras[+t.dataset.pi]=t.value;
+  else if(t.dataset.sa!==undefined)e.segs[+t.dataset.sa].a=+t.value;
+  else if(t.dataset.sb!==undefined)e.segs[+t.dataset.sb].b=+t.value;
+  else if(t.dataset.st!==undefined)e.segs[+t.dataset.st].t=t.value;
+  segCheck();
+  renderRows();renderCover();refresh(true);
+});
+$("edBody").addEventListener("click",function(ev){
+  var e=byId(sel),t=ev.target;
+  if(t.id==="addPara"){e.paras.push("");}
+  else if(t.dataset.pd!==undefined){e.paras.splice(+t.dataset.pd,1);}
+  else if(t.id==="addSeg"){var last=e.segs.length?e.segs[e.segs.length-1].b:0;e.segs.push({a:last,b:Math.min(e.dur,last+5),t:""});}
+  else if(t.dataset.sd!==undefined){e.segs.splice(+t.dataset.sd,1);}
+  else return;
+  renderEditor();renderRows();renderCover();refresh(true);
+});
+$("selAllNo").addEventListener("click",function(){eps.forEach(function(e){ticked[e.id]=!e.primary.trim();});renderRows();});
+$("selClear").addEventListener("click",function(){ticked={};renderRows();});
+$("bulkApply").addEventListener("click",function(){
+  var v=$("bulkText").value.trim();if(!v)return;
+  eps.forEach(function(e){if(ticked[e.id])e.primary=v;});
+  renderRows();renderEditor();renderCover();refresh(true);
+});
+function renderCover(){
+  var tot=eps.length,cov=eps.filter(function(e){return e.primary.trim();});
+  var groups={};
+  cov.forEach(function(e){var k=norm(e.primary);(groups[k]=groups[k]||[]).push(e.id);});
+  var distinct=Object.keys(groups).length;
+  var allTexts=0,withPara=cov.filter(function(e){return e.paras.some(function(p){return p.trim();});}).length;
+  var segEps=eps.filter(function(e){return e.segs.length;}).length;
+  var h='<div class="row"><span class="big">'+cov.length+'/'+tot+'</span><span class="mut">episodes have an instruction ('+Math.round(100*cov.length/tot)+'%)</span></div>';
+  h+='<div class="bar"><span style="width:'+(100*cov.length/tot)+'%;background:var(--ok)"></span></div>';
+  h+='<div class="kv" style="margin-top:8px"><div>Distinct primary texts</div><div>'+distinct+'</div><div>With a paraphrase</div><div>'+withPara+' episodes</div><div>With sub-tasks</div><div>'+segEps+' episodes</div></div>';
+  var dups=Object.keys(groups).filter(function(k){return groups[k].length>1;});
+  if(dups.length){h+='<div class="alert warn" style="margin-top:8px"><b>Same text on several episodes (normalised, ignoring case and punctuation)</b>';
+    dups.forEach(function(k){h+='"'+esc(byId(groups[k][0]).primary)+'" x'+groups[k].length+' ('+groups[k].join(", ")+')<br>';});
+    h+='<span class="mut">Fine if the episodes are the same task, but low wording variety. Add paraphrases.</span></div>';}
+  var miss=eps.filter(function(e){return !e.primary.trim();}).map(function(e){return e.id;});
+  if(miss.length)h+='<div class="alert"><b>'+miss.length+' episodes have no instruction</b>'+miss.join(", ")+'</div>';
+  else h+='<div class="alert ok" style="margin-top:8px">All episodes covered.</div>';
+  $("cover").innerHTML=h;
+}
+
+/* ---- split ---- */
+function unitKey(e){return $("unit").value==="scene"?e.scene:e.session;}
+function groups(){
+  var g={},order=[];
+  eps.forEach(function(e){var k=unitKey(e);if(!g[k]){g[k]=[];order.push(k);}g[k].push(e);});
+  return order.map(function(k){return {k:k,eps:g[k]};});
+}
+function renderGroups(){
+  var h="";
+  groups().forEach(function(g){
+    var sp={},m=0;g.eps.forEach(function(e){sp[e.split||"none"]=1;m+=e.dur;});
+    var keys=Object.keys(sp),label=keys.length>1?'<span class="tag none">mixed</span>':'<span class="tag '+keys[0]+'">'+keys[0]+'</span>';
+    h+='<tr><td>'+g.k+'</td><td>'+g.eps.length+'</td><td>'+(m/60).toFixed(1)+'</td><td>'+label+' <button class="b" data-g="'+g.k+'" data-v="train">train</button> <button class="b" data-g="'+g.k+'" data-v="val">val</button></td></tr>';
+  });
+  $("grpRows").innerHTML=h;
+  $("ovEp").innerHTML=eps.map(function(e){return '<option value="'+e.id+'">'+e.id+' ('+e.scene+', '+(e.split||"unassigned")+')</option>';}).join("");
+}
+$("grpRows").addEventListener("click",function(ev){
+  var t=ev.target;if(!t.dataset.g)return;
+  eps.forEach(function(e){if(unitKey(e)===t.dataset.g)e.split=t.dataset.v;});
+  refresh();
+});
+$("unit").addEventListener("change",refresh);
+$("resetSplit").addEventListener("click",function(){eps.forEach(function(e){e.split=null;});refresh();});
+$("auto").addEventListener("click",function(){
+  var gs=groups().sort(function(a,b){return b.eps.length-a.eps.length;});
+  var total=eps.length,val=0;
+  // assign whole SCENES-safe groups: if unit is session, still keep scenes together to avoid scene leak
+  var byScene={};eps.forEach(function(e){(byScene[e.scene]=byScene[e.scene]||[]).push(e);});
+  var list=Object.keys(byScene).map(function(k){return byScene[k];}).sort(function(a,b){return a.length-b.length;});
+  eps.forEach(function(e){e.split="train";});
+  list.forEach(function(l){if(val<total*0.2&&val+l.length<=total*0.3){l.forEach(function(e){e.split="val";});val+=l.length;}});
+  refresh();
+});
+$("ovApply").addEventListener("click",function(){byId($("ovEp").value).split=$("ovVal").value;refresh();});
+
+/* Leak detection: for each scene and each session, collect the set of splits its episodes occupy.
+   More than one distinct split in the same key = leak. Also reports unassigned episodes. */
+function leaks(){
+  var out=[];
+  ["scene","session"].forEach(function(kind){
+    var m={};
+    eps.forEach(function(e){if(!e.split)return;var k=e[kind];(m[k]=m[k]||{train:[],val:[]})[e.split].push(e.id);});
+    Object.keys(m).forEach(function(k){
+      if(m[k].train.length&&m[k].val.length)out.push({kind:kind,key:k,train:m[k].train,val:m[k].val});
+    });
+  });
+  return out;
+}
+function unassigned(){return eps.filter(function(e){return !e.split;});}
+function renderLeaks(){
+  var L=leaks(),U=unassigned(),h="";
+  if(L.length){
+    L.forEach(function(l){
+      h+='<div class="alert"><b>LEAK: '+l.kind+' "'+l.key+'" is in both train and val</b>train: '+l.train.join(", ")+'<br>val: '+l.val.join(", ")+'<br><button class="b" data-fix="'+l.kind+'|'+l.key+'">Move all to '+(l.train.length>=l.val.length?"train":"val")+'</button></div>';
+    });
+  } else if(!U.length){h+='<div class="alert ok"><b>No leaks</b>No scene or session appears on both sides.</div>';}
+  if(U.length)h+='<div class="alert warn"><b>'+U.length+' episodes unassigned</b>'+U.map(function(e){return e.id;}).join(", ")+'</div>';
+  h+='<div class="mut">Checked: same scene on both sides, same session on both sides. Not checked: near-identical object layouts across different scenes (needs a visual embedding pass).</div>';
+  $("leaks").innerHTML=h;
+  var tr=eps.filter(function(e){return e.split==="train";}),va=eps.filter(function(e){return e.split==="val";});
+  var tm=sum(tr),vm=sum(va),tot=Math.max(1,tm+vm);
+  $("balance").innerHTML='<div class="bar"><span style="width:'+(100*tm/tot)+'%;background:var(--train)"></span><span style="width:'+(100*vm/tot)+'%;background:var(--val)"></span></div><div class="kv" style="margin-top:8px"><div>Train</div><div>'+tr.length+' episodes, '+(tm/60).toFixed(1)+' min ('+Math.round(100*tm/tot)+'%)</div><div>Val</div><div>'+va.length+' episodes, '+(vm/60).toFixed(1)+' min ('+Math.round(100*vm/tot)+'%)</div></div>'+(va.length===0&&tr.length?'<div class="alert warn" style="margin-top:8px">No validation episodes.</div>':'');
+}
+$("leaks").addEventListener("click",function(ev){
+  var f=ev.target.dataset.fix;if(!f)return;
+  var p=f.split("|"),l=leaks().filter(function(x){return x.kind===p[0]&&x.key===p[1];})[0];
+  if(!l)return;
+  var to=l.train.length>=l.val.length?"train":"val";
+  eps.forEach(function(e){if(e[p[0]]===p[1])e.split=to;});
+  refresh();
+});
+function sum(a){var s=0;a.forEach(function(e){s+=e.dur;});return s;}
+
+/* ---- export ---- */
+var SRC_FPS=60;
+function actDim(){
+  var a=$("act").value,r=$("rot").value==="6"?6:3;
+  return a==="rel_ee_only"?3+r:3+r+1;
+}
+function blockers(){
+  var b=[];
+  if(leaks().length)b.push("split has leaks");
+  if(unassigned().length)b.push(unassigned().length+" episodes unassigned");
+  var miss=eps.filter(function(e){return !e.primary.trim();}).length;
+  if(miss)b.push(miss+" episodes without instruction");
+  if(!(+$("chunk").value>=1))b.push("chunk length invalid");
+  return b;
+}
+function plan(){
+  var fps=+$("fps").value,ch=Math.max(1,Math.floor(+$("chunk").value)||1),res=+$("res").value,fmt=$("fmt").value;
+  var d=actDim(),stride=SRC_FPS/fps;
+  var out={fps:fps,ch:ch,res:res,fmt:fmt,d:d,rows:[]};
+  var tot={frames:0,chunks:0,eps:0};
+  ["train","val"].forEach(function(s){
+    var E=eps.filter(function(e){return e.split===s;});
+    var fr=0,cn=0;
+    E.forEach(function(e){var f=Math.floor(e.dur*fps);fr+=f;cn+=Math.max(0,f-ch+1);});
+    out.rows.push({s:s,eps:E.length,frames:fr,chunks:cn});
+    tot.frames+=fr;tot.chunks+=cn;tot.eps+=E.length;
+  });
+  out.tot=tot;
+  // size: jpeg-ish video ~ bytes per pixel-frame (synthetic estimate), parquet small
+  var vidBytes=tot.frames*res*res*0.06;
+  var tabBytes=tot.frames*(d*4*2+ ($("imu").checked?6*4:0)+16);
+  var f=fmt==="both"?2:1;
+  out.bytes=(vidBytes+tabBytes)*(fmt==="rlds"?1.6:1)*(fmt==="both"?1:1);
+  if(fmt==="both")out.bytes=(vidBytes+tabBytes)+(vidBytes+tabBytes)*1.6;
+  out.stride=stride;
+  return out;
+}
+function fmtBytes(b){return b>1e9?(b/1e9).toFixed(2)+" GB":(b/1e6).toFixed(1)+" MB";}
+function renderExport(){
+  var p=plan(),b=blockers();
+  var h='';
+  if(b.length)h+='<div class="alert"><b>Export blocked</b>'+b.map(esc).join("; ")+'</div>';
+  else h+='<div class="alert ok"><b>Ready</b>No blocking issues.</div>';
+  h+='<div class="kv">';
+  h+='<div>Episodes</div><div>'+p.tot.eps+' of '+eps.length+' (train '+p.rows[0].eps+', val '+p.rows[1].eps+')</div>';
+  h+='<div>Frames written</div><div>'+p.tot.frames.toLocaleString()+' at '+p.fps+' fps (keep 1 of every '+p.stride+' source frames)</div>';
+  h+='<div>Action vector</div><div>'+p.d+'D: '+($("act").value==="abs_ee_grip"?"absolute":$("act").value==="rel_ee_only"?"relative":"relative")+' pose'+($("act").value==="rel_ee_only"?"":" + gripper width")+'</div>';
+  h+='<div>Chunk</div><div>'+p.ch+' steps = '+(p.ch/p.fps).toFixed(2)+' s of future actions, '+p.tot.chunks.toLocaleString()+' training windows</div>';
+  h+='<div>Images</div><div>'+p.res+' x '+p.res+' wrist fisheye (resized, not undistorted)</div>';
+  h+='<div>Language</div><div>'+eps.filter(function(e){return e.primary.trim();}).length+' primary'+($("para").checked?', '+eps.reduce(function(a,e){return a+e.paras.filter(function(x){return x.trim();}).length;},0)+' paraphrases':'')+($("seg").checked?', '+eps.reduce(function(a,e){return a+e.segs.length;},0)+' sub-tasks':'')+'</div>';
+  h+='<div>Estimated size</div><div>'+fmtBytes(p.bytes)+' <span class="mut">(rough synthetic estimate)</span></div>';
+  h+='</div>';
+  if(p.fps===60)h+='<div class="alert warn" style="margin-top:8px">60 fps is the source rate; file size is largest and consecutive actions are nearly identical.</div>';
+  if($("act").value==="abs_ee_grip")h+='<div class="alert warn" style="margin-top:8px">Absolute pose depends on the SLAM world origin, which differs per episode. Relative is safer across sessions.</div>';
+  if(p.ch>64)h+='<div class="alert warn" style="margin-top:8px">Chunk of '+p.ch+' is longer than the shortest sub-task in most episodes.</div>';
+  $("sumry").innerHTML=h;
+  $("doExport").disabled=b.length>0;
+  $("blockWhy").textContent=b.length?"Blocked: "+b.join("; "):"";
+}
+$("dry").addEventListener("click",function(){
+  var p=plan(),o=$("out").value.replace(/\/$/,""),L=[];
+  L.push("DRY RUN (synthetic). Would write under "+o);
+  if(p.fmt!=="rlds"){
+    L.push(o+"/lerobot_v2/meta/info.json");
+    L.push(o+"/lerobot_v2/meta/episodes.jsonl   ("+p.tot.eps+" lines: episode_index, tasks[], length)");
+    L.push(o+"/lerobot_v2/meta/tasks.jsonl");
+    L.push(o+"/lerobot_v2/meta/splits.json      (train "+p.rows[0].eps+", val "+p.rows[1].eps+")");
+    L.push(o+"/lerobot_v2/data/chunk-000/episode_NNNNNN.parquet  x"+p.tot.eps);
+    L.push(o+"/lerobot_v2/videos/chunk-000/observation.images.wrist/episode_NNNNNN.mp4  x"+p.tot.eps);
+  }
+  if(p.fmt!=="lerobot"){
+    L.push(o+"/rlds/umi_synth/1.0.0/dataset_info.json");
+    L.push(o+"/rlds/umi_synth/1.0.0/umi_synth-train.tfrecord-*  ("+p.rows[0].eps+" episodes)");
+    L.push(o+"/rlds/umi_synth/1.0.0/umi_synth-val.tfrecord-*    ("+p.rows[1].eps+" episodes)");
+  }
+  L.push("");L.push("Per-step fields:");
+  L.push("  observation.image   "+p.res+"x"+p.res+"x3");
+  L.push("  observation.state   gripper width + current EE pose");
+  if($("imu").checked)L.push("  observation.imu     6 (accel xyz, gyro xyz)");
+  L.push("  action              "+p.d+" floats, chunked x"+p.ch);
+  L.push("  language_instruction  string"+($("para").checked?" (+ paraphrase list)":""));
+  if($("seg").checked)L.push("  subtask_instruction   string, per time range");
+  L.push("");
+  var b=blockers();
+  L.push(b.length?"BLOCKED: "+b.join("; "):"OK: no blocking issues. Press Export to write.");
+  $("plan").textContent=L.join("\n");
+});
+$("doExport").addEventListener("click",function(){$("plan").textContent="Prototype only: no files are written.";});
+["fmt","act","rot","chunk","res","fps","imu","seg","para","out"].forEach(function(id){
+  $(id).addEventListener("input",renderExport);$(id).addEventListener("change",renderExport);
+});
+
+/* ---- status bar ---- */
+function renderStatus(){
+  var cov=eps.filter(function(e){return e.primary.trim();}).length,L=leaks().length,U=unassigned().length;
+  $("status").innerHTML='<span><b>'+eps.length+'</b> episodes</span><span>Instructions: <span class="pill '+(cov===eps.length?"ok":"warn")+'">'+cov+'/'+eps.length+'</span></span><span>Split leaks: <span class="pill '+(L?"err":"ok")+'">'+L+'</span></span><span>Unassigned: <span class="pill '+(U?"warn":"ok")+'">'+U+'</span></span>';
+}
+function refresh(skipRows){
+  renderGroups();renderLeaks();renderExport();renderStatus();
+}
+renderRows();renderEditor();renderCover();
+// start with a deliberately leaky split so the warning is visible
+eps.forEach(function(e){e.split=(e.scene==="lab_2"||e.session==="s02")?"val":"train";});
+refresh();
+})();
+</script>
+</body>
+</html>

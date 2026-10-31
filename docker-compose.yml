@@ -1,10 +1,29 @@
-# Develop on Windows, run on Ubuntu: the container is the Ubuntu runtime.
+# Develop on Windows, run on Ubuntu: the backend container is the Ubuntu runtime.
 services:
-  dev:
+  backend:
     build:
       context: .
       dockerfile: docker/Dockerfile
     image: starrobox-umi:dev
+    working_dir: /workspace/backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
     volumes:
       - .:/workspace
-    command: sleep infinity
+  web:
+    image: node:22-bookworm-slim
+    working_dir: /workspace/web
+    command: sh -c "npm install && npm run dev"
+    environment:
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/workspace
+      # Keep Linux node_modules in a volume so they do not mix with the Windows ones.
+      - web_node_modules:/workspace/web/node_modules
+    depends_on:
+      - backend
+volumes:
+  web_node_modules:

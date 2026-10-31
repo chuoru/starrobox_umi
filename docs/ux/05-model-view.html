@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model View - Training Sample Preview</title>
+<style>
+:root{--bg:#12161c;--card:#1a2029;--fg:#e6eaf0;--mut:#93a0b2;--line:#2b3441;--acc:#ff9f43;--ok:#4cc38a;--bad:#ff6b6b;--warn:#f2c14e;--inp:#222b37;--grid:#34506b;--obj:#e05a5a}
+@media (prefers-color-scheme:light){:root{--bg:#f2f4f7;--card:#fff;--fg:#1b232d;--mut:#586577;--line:#d5dce5;--acc:#c75e00;--ok:#1b8a5a;--bad:#c62f2f;--warn:#8a6500;--inp:#eef1f5;--grid:#7d9bb8;--obj:#c43c3c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1500px;margin:0 auto;padding:12px 16px 40px}
+h1{font-size:18px;margin:0}
+h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.syn{background:var(--warn);color:#111;font-weight:700;padding:2px 8px;border-radius:4px;font-size:12px}
+.bar{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;position:sticky;top:0;z-index:5}
+.grp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.grp label.t{color:var(--mut);font-size:12px}
+button,select{background:var(--inp);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 10px;font:inherit;cursor:pointer}
+button:hover,select:hover{border-color:var(--mut)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.seg button{border-radius:0;margin:0 -1px 0 0}
+.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0}
+.seg button.on{background:var(--acc);color:#111;border-color:var(--acc);font-weight:700}
+input[type=range]{accent-color:var(--acc)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:12px;margin-top:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;min-width:0}
+canvas{display:block;max-width:100%;height:auto;border-radius:4px}
+.cap{color:var(--mut);font-size:12px;margin-top:6px}
+.chip{display:inline-block;background:var(--inp);border:1px solid var(--line);border-radius:12px;padding:1px 8px;margin:2px 3px 2px 0;font-size:12px}
+table{border-collapse:collapse;width:100%;font-size:12px;font-variant-numeric:tabular-nums}
+th,td{padding:3px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:600}
+.scroll{overflow-x:auto}
+.pass{color:var(--ok)}.fail{color:var(--bad)}.na{color:var(--mut)}
+.chk{display:grid;grid-template-columns:62px 1fr;gap:2px 8px;font-size:13px}
+.chk b{font-weight:700}.chk small{color:var(--mut);display:block}
+.leg span{display:inline-block;margin-right:12px;font-size:12px;color:var(--mut)}
+.sw{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:4px}
+.warnbox{border-left:4px solid var(--bad);padding:4px 8px;margin-top:6px;background:var(--inp);font-size:12px}
+@media (max-width:520px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top"><h1>Model View: what one training sample looks like</h1><span class="syn">SYNTHETIC DATA - generated in this page, not a real recording</span></div>
+
+<div class="bar" role="toolbar" aria-label="Sample controls">
+  <div class="grp"><span class="t" style="color:var(--mut);font-size:12px">Sample</span>
+    <button id="prev" aria-label="Previous sample">&#9664;</button>
+    <input id="sidx" type="range" min="0" max="23" value="5" aria-label="Sample index" style="width:150px">
+    <button id="next" aria-label="Next sample">&#9654;</button>
+    <span id="slabel" style="min-width:190px"></span></div>
+  <div class="grp"><span class="t" style="color:var(--mut);font-size:12px">Chunk length N</span>
+    <input id="nsl" type="range" min="1" max="32" value="16" aria-label="Chunk length"><span id="nlabel" style="min-width:150px"></span></div>
+  <div class="grp seg" role="group" aria-label="Data view">
+    <button id="mraw">Raw (as stored)</button><button id="mpre" class="on">Preprocessed (model input)</button></div>
+</div>
+<div class="bar" style="position:static;margin-top:8px" role="group" aria-label="Preprocessing options">
+  <div class="grp"><span style="color:var(--mut);font-size:12px">Fisheye handling</span>
+    <select id="fish"><option value="keep">keep fisheye + circle mask</option><option value="pin">undistort to pinhole 110 deg</option></select></div>
+  <div class="grp"><label><input type="checkbox" id="aug" checked> train augmentation</label><button id="resamp">Resample augmentation</button></div>
+  <div class="grp"><label><input type="checkbox" id="ghost" checked> show raw-derived reference (dashed)</label></div>
+  <div class="grp"><span style="color:var(--mut);font-size:12px">Demo: inject pipeline bug</span>
+    <select id="fault">
+      <option value="none">none (correct pipeline)</option>
+      <option value="ysign">left/right sign flip (dy)</option>
+      <option value="frame">world frame, not wrist frame</option>
+      <option value="unit">mm written where m expected</option>
+      <option value="yaw">degrees written where rad expected</option>
+    </select></div>
+</div>
+
+<div class="grid">
+  <section class="card" aria-label="Observation">
+    <h2 id="obsT">Observation</h2>
+    <canvas id="c1" width="440" height="330"></canvas>
+    <div class="leg cap"><span><i class="sw" style="background:hsl(190 90% 55%)"></i>action chunk (near)</span><span><i class="sw" style="background:hsl(320 90% 60%)"></i>(far)</span><span>ticks = gripper width</span><span>dashed = raw-derived reference</span></div>
+    <div class="cap" id="obsCap"></div>
+  </section>
+  <section class="card" aria-label="3D view">
+    <h2 id="d3T">Action chunk, 3D</h2>
+    <canvas id="c3" width="440" height="330" style="cursor:grab;touch-action:none" aria-label="3D view, drag to orbit, wheel to zoom"></canvas>
+    <div class="cap" id="d3Cap">Drag to orbit, wheel to zoom.</div>
+  </section>
+  <section class="card" aria-label="Checks">
+    <h2>Automated checks on the preprocessed output</h2>
+    <div class="chk" id="chk"></div>
+    <div class="cap">Checks run in physical units, before normalization. Z-scoring hides unit errors (a mm column normalizes to the same z as an m column), so histograms of z alone would look healthy.</div>
+  </section>
+  <section class="card" aria-label="Sample tensors">
+    <h2>Instruction and tensors</h2>
+    <div id="instr"></div>
+    <div class="scroll" id="tens"></div>
+  </section>
+  <section class="card" aria-label="Chunk curves">
+    <h2 id="curT">Chunk curves (z-score per dim)</h2>
+    <canvas id="c4" width="440" height="220"></canvas>
+    <div class="cap" id="curCap"></div>
+  </section>
+</div>
+
+<section class="card" style="margin-top:12px" aria-label="Dataset statistics">
+  <h2 id="stT">Dataset statistics</h2>
+  <div class="cap" style="margin:0 0 6px" id="stCap"></div>
+  <div class="scroll" id="stats"></div>
+</section>
+</div>
+
+<script>
+"use strict";
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const DT=0.1,EPN=6,T=240,NMAX=32,RW=640,RH=480,FR=145;
+const PITCH=25*Math.PI/180,CP=Math.cos(PITCH),SP=Math.sin(PITCH);
+const TIP=[0.14,0,-0.10];
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const INSTR=["pick up the red block and place it in the bowl","move the red block to the bowl","grasp the block, then drop it into the bowl","put the red block into the bowl","pick the block and carry it to the bowl","place the red block in the bowl"];
+function smooth(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)}
+const EPS=[];
+for(let e=0;e<EPN;e++){
+  const r=rng(100+e*17),th0=(r()*2-1)*Math.PI,A=0.5+r()*0.5,om=0.04+r()*0.03,ph=r()*6.28;
+  const E={x:[],y:[],z:[],th:[],w:[],instr:INSTR[e]};
+  let x=0.8+r()*1.5,y=-1+r()*1.6;
+  for(let t=0;t<T;t++){
+    const th=th0+A*Math.sin(om*t+ph);
+    const v=0.10+0.55*Math.exp(-Math.pow((t-60)/35,2))+0.35*Math.exp(-Math.pow((t-185)/25,2));
+    E.th.push(th);E.x.push(x);E.y.push(y);
+    E.z.push(0.32+0.05*Math.sin(0.04*t+ph));
+    const w=0.08-0.055*smooth((t-100)/20)+0.055*smooth((t-185)/20)+0.001*(r()-0.5);
+    E.w.push(w);
+    x+=v*DT*Math.cos(th);y+=v*DT*Math.sin(th);
+  }
+  E.blk=[E.x[100]-0.12*Math.sin(E.th[100]),E.y[100]+0.12*Math.cos(E.th[100])];
+  E.bowl=[E.x[215],E.y[215]];
+  EPS.push(E);
+}
+const SAMPLES=[];
+for(let i=0;i<24;i++)SAMPLES.push({e:Math.floor(i/4),t:[15,70,120,165][i%4]});
+
+let mode="pre",N=16,idx=5,fault="none",augSeed=0;
+
+/* ---------- pipeline math ---------- */
+function applyFault(v,f){ // v=[dx,dy,dz,dyaw,w] in m/rad
+  v=v.slice();
+  if(f==="ysign")v[1]=-v[1];
+  if(f==="unit"){v[0]*=1000;v[1]*=1000;v[2]*=1000;v[4]*=1000}
+  if(f==="yaw")v[3]*=180/Math.PI;
+  return v;
+}
+function relAct(E,t,k,f){
+  const th0=E.th[t],dxw=E.x[t+k]-E.x[t],dyw=E.y[t+k]-E.y[t],dz=E.z[t+k]-E.z[t];
+  let dx,dy;
+  if(f==="frame"){dx=dxw;dy=dyw}else{const c=Math.cos(th0),s=Math.sin(th0);dx=c*dxw+s*dyw;dy=-s*dxw+c*dyw}
+  return applyFault([dx,dy,dz,E.th[t+k]-th0,E.w[t+k]],f==="frame"?"none":f);
+}
+function rawAct(E,t){return [E.x[t]*1000,E.y[t]*1000,E.z[t]*1000,E.th[t]*180/Math.PI,E.w[t]*1000]}
+function preState(E,t,f){
+  const c=Math.cos(E.th[0]),s=Math.sin(E.th[0]),dxw=E.x[t]-E.x[0],dyw=E.y[t]-E.y[0];
+  let dx,dy;
+  if(f==="frame"){dx=dxw;dy=dyw}else{dx=c*dxw+s*dyw;dy=-s*dxw+c*dyw}
+  return applyFault([dx,dy,E.z[t]-E.z[0],E.th[t]-E.th[0],E.w[t]],f==="frame"?"none":f);
+}
+const D_A_PRE=[["dx forward","m"],["dy left","m"],["dz up","m"],["dyaw","rad"],["gripper width","m"]];
+const D_A_RAW=[["x world","mm"],["y world","mm"],["z world","mm"],["yaw world","deg"],["gripper width","mm"]];
+const D_S_PRE=[["x (episode-start frame)","m"],["y","m"],["z","m"],["yaw","rad"],["gripper width","m"]];
+const D_S_RAW=[["x world","mm"],["y world","mm"],["z world","mm"],["yaw world","deg"],["gripper width","mm"]];
+
+const statCache={};
+function summarize(cols){
+  return cols.map(v=>{
+    let n=v.length,m=0,mn=Infinity,mx=-Infinity;
+    for(let i=0;i<n;i++){m+=v[i];if(v[i]<mn)mn=v[i];if(v[i]>mx)mx=v[i]}
+    m/=n;let s=0;for(let i=0;i<n;i++)s+=(v[i]-m)*(v[i]-m);s=Math.sqrt(s/n);
+    const B=28,h=new Array(B).fill(0),span=(mx-mn)||1;
+    for(let i=0;i<n;i++)h[Math.min(B-1,Math.floor((v[i]-mn)/span*B))]++;
+    return {mean:m,std:s,min:mn,max:mx,hist:h};
+  });
+}
+function stats(md,f){
+  const key=md+"|"+f;if(statCache[key])return statCache[key];
+  const A=[[],[],[],[],[]],S=[[],[],[],[],[]];
+  for(const E of EPS){
+    for(let t=0;t<T;t++){
+      const sv=md==="raw"?rawAct(E,t):preState(E,t,f);
+      for(let d=0;d<5;d++)S[d].push(sv[d]);
+    }
+    for(let t=0;t<T-NMAX;t+=3)for(let k=1;k<=NMAX;k++){
+      const av=md==="raw"?rawAct(E,t+k):relAct(E,t,k,f);
+      for(let d=0;d<5;d++)A[d].push(av[d]);
+    }
+  }
+  return statCache[key]={act:summarize(A),st:summarize(S)};
+}
+
+/* ---------- augmentation ---------- */
+function augParams(){
+  const on=$("aug").checked;
+  if(!on)return {S:480,ox:0,oy:0,bri:1,con:1,sat:1,on:false};
+  const r=rng(idx*7919+augSeed*104729+1);
+  const S=480*(0.86+0.14*r());
+  return {S,ox:(r()*2-1)*(RW-S)/2*0.5,oy:(r()*2-1)*(RH-S)/2,bri:0.85+0.3*r(),con:0.85+0.3*r(),sat:0.8+0.4*r(),on:true};
+}
+function preCam(a){
+  const k=224/a.S,pin=$("fish").value==="pin";
+  return {m:pin?"pin":"fish",f:pin?(112/Math.tan(55*Math.PI/180))*(480/a.S):FR*k,cx:112-a.ox*k,cy:112-a.oy*k,R:240*k,W:224,H:224};
+}
+const RAWCAM={m:"fish",f:FR,cx:320,cy:240,R:240,W:RW,H:RH};
+
+/* ---------- projection ---------- */
+function proj(cam,f,l,u){
+  const xc=-l,yc=-SP*f-CP*u,zc=CP*f-SP*u;
+  if(cam.m==="fish"){
+    const rho=Math.hypot(xc,yc),th=Math.atan2(rho,zc);
+    if(th>1.62)return null;
+    if(rho<1e-9)return [cam.cx,cam.cy];
+    const r=cam.f*th;return [cam.cx+r*xc/rho,cam.cy+r*yc/rho];
+  }
+  if(zc<0.03)return null;
+  return [cam.cx+cam.f*xc/zc,cam.cy+cam.f*yc/zc];
+}
+function sel(){const s=SAMPLES[idx];return {E:EPS[s.e],t:s.t,e:s.e}}
+function world2body(E,t,X,Y,Z){
+  const c=Math.cos(E.th[t]),s=Math.sin(E.th[t]),dx=X-E.x[t],dy=Y-E.y[t];
+  return [c*dx+s*dy,-s*dx+c*dy,Z-E.z[t]];
+}
+function pw(cam,E,t,X,Y,Z){const b=world2body(E,t,X,Y,Z);return proj(cam,b[0],b[1],b[2])}
+function poly(g,pts,close){
+  g.beginPath();let pen=false;
+  for(const p of pts){if(!p){pen=false;continue}if(!pen){g.moveTo(p[0],p[1]);pen=true}else g.lineTo(p[0],p[1])}
+  if(close)g.closePath();
+}
+function sceneDraw(g,cam,E,t){
+  g.fillStyle="#000";g.fillRect(0,0,cam.W,cam.H);
+  g.save();
+  if(cam.m==="fish"){g.beginPath();g.arc(cam.cx,cam.cy,cam.R,0,7);g.clip()}
+  const grd=g.createLinearGradient(0,0,0,cam.H);grd.addColorStop(0,"#2a3340");grd.addColorStop(1,"#3a3d36");
+  g.fillStyle=grd;g.fillRect(0,0,cam.W,cam.H);
+  const lw=Math.max(0.8,cam.W/320);
+  g.lineWidth=lw;g.strokeStyle="#7d8c9a";g.globalAlpha=0.55;
+  const P=[E.x[t],E.y[t]],gx0=Math.round(P[0]/0.2)*0.2,gy0=Math.round(P[1]/0.2)*0.2;
+  for(let i=-8;i<=8;i++){
+    const a=[],b=[];
+    for(let j=-30;j<=30;j++){
+      a.push(pw(cam,E,t,gx0+i*0.2,gy0+j*0.05,0));
+      b.push(pw(cam,E,t,gx0+j*0.05,gy0+i*0.2,0));
+    }
+    poly(g,a);g.stroke();poly(g,b);g.stroke();
+  }
+  g.globalAlpha=1;
+  // block
+  const bx=E.blk[0],by=E.blk[1],h=0.06,q=0.03;
+  const V=[];for(const z of [0,h])for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]])V.push(pw(cam,E,t,bx+sx*q,by+sy*q,z));
+  g.fillStyle=css("--obj");g.globalAlpha=0.8;poly(g,V.slice(4),true);g.fill();g.globalAlpha=1;
+  g.strokeStyle="#ffd0d0";poly(g,V.slice(4),true);g.stroke();
+  for(let i=0;i<4;i++){poly(g,[V[i],V[i+4]]);g.stroke()}
+  poly(g,V.slice(0,4),true);g.stroke();
+  // bowl
+  const rim=[];for(let i=0;i<=24;i++){const a=i/24*6.2832;rim.push(pw(cam,E,t,E.bowl[0]+0.09*Math.cos(a),E.bowl[1]+0.09*Math.sin(a),0.04))}
+  g.strokeStyle="#7fd1c7";g.lineWidth=lw*1.6;poly(g,rim);g.stroke();
+  // gripper jaws (rigid in camera frame)
+  g.strokeStyle="#cfd6de";g.lineWidth=lw*3;g.lineCap="round";
+  for(const sgn of [-1,1]){
+    poly(g,[proj(cam,0.06,sgn*E.w[t]/2,-0.10),proj(cam,0.16,sgn*E.w[t]/2,-0.10)]);g.stroke();
+  }
+  g.restore();
+}
+
+/* ---------- observation canvas ---------- */
+function chunkBody(E,t,f){ // body-frame tip points for k=1..N and width
+  const out=[];
+  for(let k=1;k<=N;k++){
+    const a=relAct(E,t,k,f),c=Math.cos(a[3]),s=Math.sin(a[3]);
+    out.push({f:a[0]+c*TIP[0]-s*TIP[1],l:a[1]+s*TIP[0]+c*TIP[1],u:a[2]+TIP[2],w:a[4],yaw:a[3]});
+  }
+  return out;
+}
+function drawChunk(g,cam,pts,tf,dashed,lwBase){
+  const P=pts.map(p=>{const q=proj(cam,p.f,p.l,p.u);return q?tf(q):null});
+  g.save();g.lineCap="round";
+  if(dashed){g.setLineDash([5,4]);g.globalAlpha=0.9}
+  for(let i=0;i<P.length;i++){
+    const hue=190+130*i/Math.max(1,P.length-1),col=dashed?css("--fg"):"hsl("+hue+" 90% 58%)";
+    g.strokeStyle=col;g.fillStyle=col;g.lineWidth=lwBase;
+    const a=i?P[i-1]:null,b=P[i];
+    if(a&&b){g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke()}
+    if(b&&!dashed){
+      g.beginPath();g.arc(b[0],b[1],lwBase*1.1,0,7);g.fill();
+      const p=pts[i],c=Math.cos(p.yaw),s=Math.sin(p.yaw),hw=p.w/2;
+      const e1=proj(cam,p.f-s*hw,p.l+c*hw,p.u),e2=proj(cam,p.f+s*hw,p.l-c*hw,p.u);
+      if(e1&&e2){const A=tf(e1),B=tf(e2);g.lineWidth=lwBase*0.8;g.beginPath();g.moveTo(A[0],A[1]);g.lineTo(B[0],B[1]);g.stroke()}
+    }
+  }
+  g.restore();
+}
+function drawObs(){
+  const c=$("c1"),g=c.getContext("2d"),{E,t}=sel();
+  g.setTransform(1,0,0,1,0,0);g.fillStyle=css("--bg");g.fillRect(0,0,c.width,c.height);
+  const a=augParams(),ref=chunkBody(E,t,"none"),cur=chunkBody(E,t,fault);
+  if(mode==="raw"){
+    const k=c.width/RW,off=document.createElement("canvas");off.width=RW;off.height=RH;
+    sceneDraw(off.getContext("2d"),RAWCAM,E,t);
+    g.imageSmoothingEnabled=true;g.drawImage(off,0,0,c.width,c.height);
+    const tf=q=>[q[0]*k,q[1]*k];
+    // crop box preview
+    const S=a.S;g.save();g.setLineDash([6,4]);g.strokeStyle=css("--warn");g.lineWidth=1.5;
+    g.strokeRect((320+a.ox-S/2)*k,(240+a.oy-S/2)*k,S*k,S*k);g.restore();
+    g.fillStyle=css("--warn");g.font="11px system-ui";g.fillText("crop window (this sample's augmentation)",6,c.height-8);
+    drawChunk(g,RAWCAM,ref,tf,false,2.2);
+    $("obsT").textContent="Observation - RAW wrist frame (as recorded)";
+    $("obsCap").textContent="640x480 fisheye (image circle r=240 px, equidistant, ~190 deg). Overlay = absolute SLAM poses in the world frame, mapped through the current camera pose, in mm. Nothing cropped, resized or color-changed yet.";
+  }else{
+    const cam=preCam(a),off=document.createElement("canvas");off.width=224;off.height=224;
+    const og=off.getContext("2d");sceneDraw(og,cam,E,t);
+    const k=330/224,ox0=(c.width-330)/2;
+    g.imageSmoothingEnabled=false;
+    const hasF=("filter" in g);
+    if(hasF&&a.on)g.filter="brightness("+a.bri+") contrast("+a.con+") saturate("+a.sat+")";
+    g.drawImage(off,ox0,0,330,330);g.filter="none";
+    g.strokeStyle=css("--line");g.strokeRect(ox0-.5,.5,331,329);
+    const tf=q=>[ox0+q[0]*k,q[1]*k];
+    g.save();g.beginPath();g.rect(ox0,0,330,330);g.clip();
+    if($("ghost").checked&&fault!=="none")drawChunk(g,cam,ref,tf,true,1.8);
+    drawChunk(g,cam,cur,tf,false,2.2);
+    g.restore();
+    g.fillStyle=css("--mut");g.font="11px system-ui";
+    g.fillText("224",4,16);g.fillText("x224",4,28);
+    $("obsT").textContent="Observation - PREPROCESSED (exactly what the encoder receives)";
+    $("obsCap").textContent="224x224, "+($("fish").value==="pin"?"undistorted pinhole 110 deg":"fisheye kept, outside circle masked to 0")+", nearest-neighbour upscaled so you see real pixels. "+
+      (a.on?"Augmentation: crop "+Math.round(a.S/480*100)+"% at ("+a.ox.toFixed(0)+","+a.oy.toFixed(0)+") px, brightness "+a.bri.toFixed(2)+", contrast "+a.con.toFixed(2)+", saturation "+a.sat.toFixed(2)+(hasF?"":" (preview of color jitter unsupported in this browser)")+".":"Augmentation off (eval).")+" Then ImageNet mean/std norm, CHW float32.";
+  }
+}
+
+/* ---------- 3D ---------- */
+let az=0.7,el=0.55,zoom=2.2;
+function drawChunk3(){
+  const c=$("c3"),g=c.getContext("2d"),{E,t}=sel(),raw=mode==="raw";
+  g.setTransform(1,0,0,1,0,0);g.fillStyle=css("--bg");g.fillRect(0,0,c.width,c.height);
+  const ca=Math.cos(az),sa=Math.sin(az),ce=Math.cos(el),se=Math.sin(el),D=3.4/zoom,F=330;
+  const P=(x,y,z)=>{const x1=x*ca-y*sa,y1=x*sa+y*ca,su=z*ce+y1*se,dep=y1*ce-z*se+D;if(dep<0.3)return null;const k=F/dep;return [c.width/2+x1*k,c.height*0.55-su*k]};
+  const P0=[E.x[t],E.y[t],E.z[t]];
+  const gz=-E.z[t];
+  g.lineWidth=1;g.strokeStyle=css("--grid");g.globalAlpha=0.5;
+  const ox=raw?P0[0]:0,oy=raw?P0[1]:0;
+  for(let i=-6;i<=6;i++){
+    const gx=Math.round(ox/0.25)*0.25+i*0.25-ox,gy=Math.round(oy/0.25)*0.25+i*0.25-oy;
+    poly(g,[P(gx,-1.6,gz),P(gx,1.6,gz)]);g.stroke();
+    poly(g,[P(-1.6,gy,gz),P(1.6,gy,gz)]);g.stroke();
+  }
+  g.globalAlpha=1;
+  let ptsC=[],ptsG=[],maxd=0;
+  const rawPts=[];
+  for(let k=0;k<=N;k++){const q=[E.x[t+k]-P0[0],E.y[t+k]-P0[1],E.z[t+k]-P0[2],E.th[t+k],E.w[t+k]];rawPts.push(q)}
+  if(raw){
+    g.strokeStyle=css("--mut");g.globalAlpha=0.6;g.lineWidth=1;
+    poly(g,EPS[sel().e].x.map((x,i)=>P(x-P0[0],EPS[sel().e].y[i]-P0[1],EPS[sel().e].z[i]-P0[2])));g.stroke();g.globalAlpha=1;
+    ptsC=rawPts.slice(1).map(q=>({p:[q[0],q[1],q[2]],lx:-Math.sin(q[3]),ly:Math.cos(q[3]),w:q[4]}));
+  }else{
+    for(let k=1;k<=N;k++){const a=relAct(E,t,k,fault);ptsC.push({p:[a[0],a[1],a[2]],lx:-Math.sin(a[3]),ly:Math.cos(a[3]),w:a[4]})}
+    if($("ghost").checked&&fault!=="none")for(let k=1;k<=N;k++){const a=relAct(E,t,k,"none");ptsG.push(P(a[0],a[1],a[2]))}
+  }
+  for(const q of ptsC)maxd=Math.max(maxd,Math.hypot(q.p[0],q.p[1],q.p[2]));
+  if(ptsG.length){g.save();g.setLineDash([5,4]);g.strokeStyle=css("--fg");g.lineWidth=1.5;poly(g,ptsG);g.stroke();g.restore()}
+  // axes of current wrist frame
+  const th=raw?E.th[t]:0,al=0.28,o=[0,0,0];
+  const ax=[[Math.cos(th),Math.sin(th),0,"#ff5a5a","fwd"],[-Math.sin(th),Math.cos(th),0,"#5adf7a","left"],[0,0,1,"#5a9cff","up"]];
+  g.font="11px system-ui";
+  for(const a of ax){const p0=P(0,0,0),p1=P(a[0]*al,a[1]*al,a[2]*al);if(p0&&p1){g.strokeStyle=a[3];g.fillStyle=a[3];g.lineWidth=2.5;poly(g,[p0,p1]);g.stroke();g.fillText(a[4],p1[0]+3,p1[1]-3)}}
+  // chunk
+  const sp=ptsC.map(q=>P(q.p[0],q.p[1],q.p[2]));
+  g.lineCap="round";
+  for(let i=0;i<ptsC.length;i++){
+    const hue=190+130*i/Math.max(1,ptsC.length-1),col="hsl("+hue+" 90% 58%)";
+    g.strokeStyle=col;g.fillStyle=col;
+    const a=i?sp[i-1]:P(0,0,0),b=sp[i];
+    if(a&&b){g.lineWidth=2.5;poly(g,[a,b]);g.stroke();g.beginPath();g.arc(b[0],b[1],3,0,7);g.fill()}
+    const q=ptsC[i],e1=P(q.p[0]+q.lx*q.w/2,q.p[1]+q.ly*q.w/2,q.p[2]),e2=P(q.p[0]-q.lx*q.w/2,q.p[1]-q.ly*q.w/2,q.p[2]);
+    if(e1&&e2){g.lineWidth=1.5;poly(g,[e1,e2]);g.stroke()}
+  }
+  $("d3T").textContent=raw?"Action chunk, 3D - RAW: world frame, absolute poses":"Action chunk, 3D - PREPROCESSED: wrist frame, relative to now";
+  let txt=raw?"View centred on the current wrist; gray line = whole episode path in the SLAM world frame; the world grid is fixed to the world.":"Origin = current wrist pose; the grid is attached to the wrist (forward = red). Cross-bars = gripper width at each step.";
+  $("d3Cap").innerHTML=txt+" Drag to orbit, wheel to zoom."+(maxd>3?'<div class="warnbox"><b class="fail">Off scale:</b> chunk reaches '+maxd.toFixed(1)+' units from the wrist (a 3 s grasp should stay within about 1 m).</div>':"");
+}
+
+/* ---------- tensors table ---------- */
+function fmt(v){const a=Math.abs(v);if(a<1e-9)return "0";return a>=1000?v.toFixed(0):a>=10?v.toFixed(1):a===0?"0":a<0.001?v.toExponential(1):v.toFixed(3)}
+function zs(v,st){return (v-st.mean)/(st.std+1e-9)}
+function actRows(){ // returns rows of vectors in current mode, k=1..N
+  const {E,t}=sel(),out=[];
+  for(let k=1;k<=N;k++)out.push(mode==="raw"?rawAct(E,t+k):relAct(E,t,k,fault));
+  return out;
+}
+function drawTensors(){
+  const {E,t}=sel(),S=stats(mode,fault);
+  $("instr").innerHTML='<div class="cap" style="margin:0 0 4px">Instruction (language input, tokenized by the VLA tokenizer)</div><div style="margin-bottom:8px"><b>"'+E.instr+'"</b></div><div>'+E.instr.split(" ").map(w=>'<span class="chip">'+w+'</span>').join("")+'</div>';
+  const DS=mode==="raw"?D_S_RAW:D_S_PRE,DA=mode==="raw"?D_A_RAW:D_A_PRE;
+  const sv=mode==="raw"?rawAct(E,t):preState(E,t,fault);
+  let h='<table><tr><th>proprio state (1 x 5)</th><th>value</th><th>unit</th><th>z</th></tr>';
+  for(let d=0;d<5;d++)h+='<tr><td>'+DS[d][0]+'</td><td>'+fmt(sv[d])+'</td><td>'+DS[d][1]+'</td><td>'+fmt(zs(sv[d],S.st[d]))+'</td></tr>';
+  h+='</table><br>';
+  const rows=actRows(),show=[];
+  const pick=rows.length<=5?rows.map((_,i)=>i):[0,1,2,-1,rows.length-2,rows.length-1];
+  h+='<table><tr><th>action chunk ['+N+' x 5]</th>'+DA.map(d=>'<th>'+d[0].replace("gripper ","")+' ['+d[1]+']</th>').join("")+'</tr>';
+  pick.forEach(i=>{
+    if(i===-1){h+='<tr><td colspan="6" class="na" style="text-align:center">...</td></tr>';return}
+    h+='<tr><td>k = '+(i+1)+'</td>'+rows[i].map(v=>'<td>'+fmt(v)+'</td>').join("")+'</tr>';
+  });
+  h+='</table><div class="cap">'+(mode==="raw"?"Raw: absolute world pose and width of the future frames, in mm / deg. The model never sees these directly.":"Preprocessed: pose of future wrist frames expressed in the current wrist frame (forward, left, up), width absolute. z = (value - mean) / std using norm_stats.json below; this z is what the action head regresses.")+'</div>';
+  $("tens").innerHTML=h;
+}
+
+/* ---------- curves ---------- */
+function drawCurves(){
+  const c=$("c4"),g=c.getContext("2d"),S=stats(mode,fault),rows=actRows(),DA=mode==="raw"?D_A_RAW:D_A_PRE;
+  g.setTransform(1,0,0,1,0,0);g.fillStyle=css("--bg");g.fillRect(0,0,c.width,c.height);
+  const L=34,R=84,Tp=10,B=22,w=c.width-L-R,h=c.height-Tp-B,yz=z=>Tp+h/2-Math.max(-5,Math.min(5,z))/5*(h/2);
+  g.strokeStyle=css("--line");g.fillStyle=css("--mut");g.font="10px system-ui";g.lineWidth=1;
+  for(const z of [-4,-2,0,2,4]){poly(g,[[L,yz(z)],[L+w,yz(z)]]);g.stroke();g.fillText(z>0?"+"+z:""+z,6,yz(z)+3)}
+  g.fillText("step k",L+w/2-15,c.height-6);
+  const cols=["#ff7b7b","#6bd48c","#6aa8ff","#e6c24a","#c78bff"];
+  for(let d=0;d<5;d++){
+    g.strokeStyle=cols[d];g.lineWidth=1.8;
+    poly(g,rows.map((r,i)=>[L+(rows.length>1?i/(rows.length-1):0.5)*w,yz(zs(r[d],S.act[d]))]));g.stroke();
+    const last=rows[rows.length-1][d],z=zs(last,S.act[d]);
+    g.fillStyle=cols[d];g.fillText(DA[d][0].replace("gripper ",""),L+w+6,Math.max(12,Math.min(c.height-B,yz(z)+3)));
+  }
+  $("curT").textContent="Chunk curves - "+(mode==="raw"?"raw values":"normalized targets")+", z-score per dim (clipped +-5)";
+  $("curCap").textContent="Look for: a jump at k=1 (frame or unit break), a curve pinned at the clip line (wrong scale), width stuck at 0 or 1, mirrored lateral motion.";
+}
+
+/* ---------- checks ---------- */
+function runChecks(){
+  const {E,t}=sel(),out=[];
+  const pre=[],ref=[];
+  for(let k=1;k<=N;k++){pre.push(relAct(E,t,k,fault));ref.push(relAct(E,t,k,"none"))}
+  const n1=Math.hypot(pre[0][0],pre[0][1],pre[0][2]);
+  out.push([n1<0.15?"pass":"fail","Step size","first step moves "+fmt(n1)+" (limit 0.15 per 0.1 s step; unit check)"]);
+  const L=pre[N-1],Rr=ref[N-1],nl=Math.hypot(L[0],L[1]),nr=Math.hypot(Rr[0],Rr[1]);
+  if(nr<0.01||nl<1e-9)out.push(["na","Direction vs visual motion","robot nearly still in this window, not testable"]);
+  else{const cs=(L[0]*Rr[0]+L[1]*Rr[1])/(nl*nr);out.push([cs>0.9?"pass":"fail","Direction vs visual motion","cosine "+cs.toFixed(2)+" between planned displacement and feature-flow ego-motion (synthetic stand-in); catches sign flips and frame mismatch"])}
+  const my=Math.max(...pre.map(r=>Math.abs(r[3])));
+  out.push([my<Math.PI?"pass":"fail","Yaw range","max |dyaw| = "+fmt(my)+" (must be < pi if rad)"]);
+  const wr=pre.every(r=>r[4]>=0&&r[4]<=0.12);
+  out.push([wr?"pass":"fail","Width range","gripper width must stay within 0..0.12 m; observed "+fmt(Math.min(...pre.map(r=>r[4])))+" .. "+fmt(Math.max(...pre.map(r=>r[4])))]);
+  const cam=preCam({S:480,ox:0,oy:0}),cb=chunkBody(E,t,fault);
+  const inside=cb.filter(p=>{const q=proj(cam,p.f,p.l,p.u);return q&&Math.hypot(q[0]-112,q[1]-112)<112*(cam.m==="fish"?cam.R/112:1)*0.98&&q[0]>=0&&q[1]>=0&&q[0]<=224&&q[1]<=224}).length;
+  out.push([inside/N>=0.5?"pass":"na","Chunk in view",Math.round(inside/N*100)+"% of chunk points project inside the cropped image (informational; moving backwards is legal)"]);
+  const A=stats("pre",fault).act,B=stats("pre","none").act;let worst=0,wd=0,wk="";
+  for(let d=0;d<5;d++){const r=A[d].std/(B[d].std+1e-12),dm=Math.abs(A[d].mean-B[d].mean)/(B[d].std+1e-12),bad=Math.max(Math.abs(Math.log(r)),dm);if(bad>worst){worst=bad;wd=d;wk=r.toFixed(2)+"x std, mean off by "+dm.toFixed(2)+" sd"}}
+  out.push([worst<0.22?"pass":"fail","Dataset vs raw recompute",worst<0.22?"all 5 dims match stats recomputed from raw poses":D_A_PRE[wd][0]+": "+wk+". A pure sign flip keeps std and a near-zero mean, so only the direction check catches it"]);
+  $("chk").innerHTML=out.map(o=>'<b class="'+o[0]+'">'+(o[0]==="pass"?"&#10003; PASS":o[0]==="fail"?"&#10007; FAIL":"- n/a")+'</b><div>'+o[1]+'<small>'+o[2]+'</small></div>').join("");
+}
+
+/* ---------- stats table ---------- */
+function drawStats(){
+  const S=stats(mode,fault),{E,t}=sel(),raw=mode==="raw";
+  const DA=raw?D_A_RAW:D_A_PRE,DS=raw?D_S_RAW:D_S_PRE;
+  const rows=actRows(),sv=raw?rawAct(E,t):preState(E,t,fault);
+  let h='<table><tr><th>dimension</th><th>unit</th><th>mean</th><th>std</th><th>min</th><th>max</th>'+(raw?'':'<th>z min</th><th>z max</th>')+'<th style="text-align:left">histogram (orange = this sample)</th><th>this sample</th></tr>';
+  const sec=(name,dims,st,cur,pfx)=>{
+    h+='<tr><td colspan="'+(raw?9:11)+'" style="background:var(--inp);font-weight:700">'+name+'</td></tr>';
+    for(let d=0;d<5;d++){
+      const s=st[d];
+      h+='<tr><td>'+dims[d][0]+'</td><td>'+dims[d][1]+'</td><td>'+fmt(s.mean)+'</td><td>'+fmt(s.std)+'</td><td>'+fmt(s.min)+'</td><td>'+fmt(s.max)+'</td>'+
+        (raw?'':'<td>'+fmt(zs(s.min,s))+'</td><td>'+fmt(zs(s.max,s))+'</td>')+
+        '<td style="text-align:left"><canvas width="200" height="36" data-h="'+pfx+d+'" style="width:200px;height:36px"></canvas></td><td>'+(pfx==="a"?fmt(cur[0][d])+' .. '+fmt(cur[cur.length-1][d]):fmt(cur[d]))+'</td></tr>';
+    }
+  };
+  sec("Proprioceptive state (input) - "+(raw?"world frame":"relative to episode start, width absolute"),DS,S.st,sv,"s");
+  sec("Action chunk target (output) - "+(raw?"absolute future poses":"relative to current wrist frame, width absolute"),DA,S.act,rows,"a");
+  h+='</table>';
+  $("stats").innerHTML=h;
+  $("stT").textContent="Dataset statistics - "+(raw?"RAW values":"PREPROCESSED values (what norm_stats.json is computed from)");
+  $("stCap").textContent="Computed over 6 synthetic episodes x all steps (state) and all chunk offsets k=1..32 (action). "+(raw?"Raw absolute poses have large, arbitrary means that depend on where SLAM put its origin, which is why training uses relative actions.":"Normalizer: z = (v - mean) / std, per dimension, saved with the checkpoint. A mean far from 0 for dy usually means the robot has a lateral bias or the frame is wrong.");
+  document.querySelectorAll("#stats canvas").forEach(cv=>{
+    const key=cv.dataset.h,d=+key[1],isA=key[0]==="a",s=(isA?S.act:S.st)[d],g=cv.getContext("2d");
+    g.clearRect(0,0,200,36);const mx=Math.max(...s.hist);
+    g.fillStyle=css("--mut");g.globalAlpha=0.7;
+    s.hist.forEach((v,i)=>{const bh=v/mx*30,bw=200/s.hist.length;g.fillRect(i*bw+0.5,34-bh,bw-1,bh)});
+    g.globalAlpha=1;g.fillStyle=css("--acc");
+    const vals=isA?rows.map(r=>r[d]):[sv[d]],span=(s.max-s.min)||1;
+    vals.forEach(v=>{const x=Math.max(0,Math.min(199,(v-s.min)/span*200));g.fillRect(x-1,0,2,isA?10:34)});
+    g.fillStyle=css("--line");g.fillRect(0,35,200,1);
+  });
+}
+
+/* ---------- render ---------- */
+function labels(){
+  const s=SAMPLES[idx];
+  $("slabel").textContent="sample "+(idx+1)+"/24 - episode "+(s.e+1)+", t = "+(s.t*DT).toFixed(1)+" s (frame "+s.t+")";
+  $("nlabel").textContent="N = "+N+" steps ("+(N*DT).toFixed(1)+" s at 10 Hz)";
+  $("mraw").classList.toggle("on",mode==="raw");$("mpre").classList.toggle("on",mode==="pre");
+  $("mraw").setAttribute("aria-pressed",mode==="raw");$("mpre").setAttribute("aria-pressed",mode==="pre");
+}
+function renderAll(){labels();drawObs();drawChunk3();drawTensors();drawCurves();runChecks();drawStats()}
+function renderLight(){labels();drawObs();drawChunk3();drawTensors();drawCurves();runChecks();drawStats()}
+
+$("sidx").oninput=e=>{idx=+e.target.value;renderAll()};
+$("prev").onclick=()=>{idx=(idx+23)%24;$("sidx").value=idx;renderAll()};
+$("next").onclick=()=>{idx=(idx+1)%24;$("sidx").value=idx;renderAll()};
+$("nsl").oninput=e=>{N=+e.target.value;renderLight()};
+$("mraw").onclick=()=>{mode="raw";renderAll()};
+$("mpre").onclick=()=>{mode="pre";renderAll()};
+$("fish").onchange=renderAll;$("aug").onchange=renderAll;$("ghost").onchange=renderAll;
+$("resamp").onclick=()=>{augSeed++;renderAll()};
+$("fault").onchange=e=>{fault=e.target.value;renderAll()};
+document.addEventListener("keydown",e=>{
+  if(e.target&&(e.target.tagName==="SELECT"))return;
+  if(e.key==="ArrowRight"&&e.target.tagName!=="INPUT"){$("next").click()}
+  else if(e.key==="ArrowLeft"&&e.target.tagName!=="INPUT"){$("prev").click()}
+  else if(e.key==="r"||e.key==="R"){mode=mode==="raw"?"pre":"raw";renderAll()}
+});
+(function(){
+  const c=$("c3");let drag=false,lx=0,ly=0;
+  c.addEventListener("pointerdown",e=>{drag=true;lx=e.clientX;ly=e.clientY;c.setPointerCapture(e.pointerId);c.style.cursor="grabbing"});
+  c.addEventListener("pointerup",()=>{drag=false;c.style.cursor="grab"});
+  c.addEventListener("pointermove",e=>{if(!drag)return;az+=(e.clientX-lx)*0.01;el=Math.max(-0.2,Math.min(1.5,el+(e.clientY-ly)*0.01));lx=e.clientX;ly=e.clientY;drawChunk3()});
+  c.addEventListener("wheel",e=>{e.preventDefault();zoom=Math.max(0.3,Math.min(4,zoom*(e.deltaY<0?1.1:0.91)));drawChunk3()},{passive:false});
+})();
+if(window.matchMedia)window.matchMedia("(prefers-color-scheme: light)").addEventListener("change",renderAll);
+renderAll();
+})();
+</script>
+</body>
+</html>

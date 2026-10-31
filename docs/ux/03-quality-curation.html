@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quality Triage</title>
+<style>
+:root{--bg:#f6f7f9;--pn:#fff;--tx:#1b1f24;--mu:#5b6571;--bd:#d6dbe1;--ac:#2457d6;--ok:#1d7a46;--bad:#c3302b;--wr:#a86400;--tl:#e9edf2;--sel:#e3ebff}
+@media (prefers-color-scheme:dark){:root{--bg:#14171b;--pn:#1d2127;--tx:#e6e9ed;--mu:#9aa5b1;--bd:#333a43;--ac:#7aa2ff;--ok:#4cc38a;--bad:#ff7b72;--wr:#e3b341;--tl:#2a3038;--sel:#243256}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.4 system-ui,Segoe UI,sans-serif;height:100vh;display:flex;flex-direction:column}
+header{display:flex;gap:16px;align-items:center;padding:8px 14px;background:var(--pn);border-bottom:1px solid var(--bd);flex-wrap:wrap}
+header h1{font-size:15px;margin:0}
+.synth{background:var(--wr);color:#fff;padding:2px 8px;border-radius:10px;font-weight:600;font-size:11px}
+.stat b{font-variant-numeric:tabular-nums}
+.bar{flex:1;min-width:120px;height:8px;background:var(--tl);border-radius:4px;overflow:hidden;display:flex}
+.bar i{display:block;height:100%}
+main{flex:1;display:grid;grid-template-columns:330px 1fr;min-height:0}
+#list{overflow:auto;border-right:1px solid var(--bd);background:var(--pn)}
+.row{display:grid;grid-template-columns:52px 44px 1fr 22px;gap:6px;align-items:center;padding:5px 10px;border-bottom:1px solid var(--tl);cursor:pointer}
+.row.sel{background:var(--sel);outline:2px solid var(--ac);outline-offset:-2px}
+.row.done{opacity:.55}
+.row .id{font-variant-numeric:tabular-nums}
+.chip{font-weight:700;text-align:center;border-radius:4px;padding:1px 0;color:#fff;font-variant-numeric:tabular-nums}
+.fl{display:flex;gap:2px;flex-wrap:wrap}
+.fl span{font-size:10px;font-weight:700;border:1px solid var(--bad);color:var(--bad);border-radius:3px;padding:0 3px}
+.fl span.x{border-color:var(--mu);color:var(--mu);text-decoration:line-through}
+.dv{font-weight:700;text-align:center}
+.sep{padding:4px 10px;font-size:11px;color:var(--mu);background:var(--tl);position:sticky;top:0}
+#detail{overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--pn);border:1px solid var(--bd);border-radius:8px;padding:10px 12px}
+h2{font-size:13px;margin:0 0 6px}
+.top{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.big{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums}
+.lane{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:8px;margin:3px 0;cursor:pointer}
+.lane.off .nm{color:var(--mu)}
+.cells{display:grid;height:16px;background:var(--tl);border-radius:3px;position:relative;overflow:hidden}
+.cells i{display:block}
+.cells i.f{background:var(--bad)}
+.cells i.d{background:repeating-linear-gradient(45deg,var(--mu) 0 2px,transparent 2px 5px);opacity:.6}
+.cells i.c{background:var(--ok);opacity:.35}
+.ov{position:absolute;top:0;bottom:0;pointer-events:none}
+.trim{border:2px solid var(--ac);background:rgba(36,87,214,.12)}
+.cur{width:2px;background:var(--tx)}
+kbd{background:var(--tl);border:1px solid var(--bd);border-bottom-width:2px;border-radius:4px;padding:0 5px;font:600 11px ui-monospace,Consolas,monospace}
+.flag{border-left:4px solid var(--bad);padding:4px 8px;margin:6px 0;background:var(--tl);border-radius:0 4px 4px 0}
+.flag.dis{border-color:var(--mu);opacity:.7}
+.flag small{color:var(--mu);display:block}
+.keys{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px}
+#toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:6px 14px;border-radius:6px;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.on{opacity:1}
+.mono{font-family:ui-monospace,Consolas,monospace}
+.mu{color:var(--mu)}
+@media (max-width:760px){main{grid-template-columns:1fr}#list{max-height:35vh}.lane{grid-template-columns:100px 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Quality triage</h1>
+  <span class="synth">SYNTHETIC DATA - invented episodes, not real recordings</span>
+  <span class="stat">Accepted <b id="sA">0</b> | Trimmed <b id="sT">0</b> | Rejected <b id="sR">0</b> | Left <b id="sL">0</b></span>
+  <span class="stat">Kept <b id="sS">0</b> s</span>
+  <div class="bar" id="bar"></div>
+</header>
+<main>
+  <div id="list" tabindex="-1"></div>
+  <div id="detail"></div>
+</main>
+<div id="toast"></div>
+<script>
+(function(){
+"use strict";
+// ---------- synthetic data ----------
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var R=rng(20260401);
+function ri(a,b){return a+Math.floor(R()*(b-a+1))}
+var TYPES=[
+ {k:"slam",key:"1",ab:"SLAM",name:"SLAM tracking lost",rule:"tracked-keyframe ratio < 90% over a 1 s window",blocker:true},
+ {k:"scale",key:"2",ab:"SCL",name:"Scale drift",rule:"scale vs. gripper-finger length reference drifts > 5%"},
+ {k:"imu",key:"3",ab:"IMU",name:"IMU init failed",rule:"visual-inertial init not complete (gravity/bias unobserved)",blocker:true},
+ {k:"width",key:"4",ab:"GRP",name:"Gripper width glitch",rule:"jump > 15 mm in one frame, or outside 0-90 mm"},
+ {k:"blur",key:"5",ab:"BLR",name:"Motion blur",rule:"Laplacian variance < 40"},
+ {k:"exp",key:"6",ab:"EXP",name:"Exposure",rule:"mean luma < 25 or > 230, or > 20% clipped pixels"},
+ {k:"static",key:"7",ab:"STA",name:"Static start",rule:"gripper speed < 2 mm/s at start"}
+];
+var TBY={};TYPES.forEach(function(t){TBY[t.k]=t});
+var MINRUN=8, N_EP=120;
+var EPS=[];
+function mkEp(i){
+  var n=ri(30,80), ep={id:"ep_"+String(i+1).padStart(3,"0"),n:n,flags:[],dec:null,dis:{},trim:null,sig:{}};
+  var cand=[];
+  var p=R();
+  var nprob=p<.5?0:p<.8?1:p<.95?2:3;
+  var pool=TYPES.map(function(t){return t.k});
+  for(var j=0;j<nprob;j++){cand.push(pool.splice(ri(0,pool.length-1),1)[0])}
+  cand.forEach(function(k){
+    var a,b,len;
+    if(k==="static"){a=0;b=ri(3,Math.min(14,n-8))}
+    else if(k==="imu"){a=0;b=ri(4,Math.round(n*(R()<.4?.5:.2)))}
+    else if(k==="width"){a=ri(2,n-4);b=a+ri(1,2)}
+    else {len=ri(3,Math.round(n*(k==="slam"&&R()<.35?.45:.25)));a=ri(0,n-len);b=a+len}
+    b=Math.min(b,n);
+    ep.flags.push({k:k,a:a,b:b});
+  });
+  // per-bin signals (1 bin = 1 s)
+  var S={track:[],scale:[],imuok:[],width:[],blur:[],luma:[],speed:[]};
+  for(var t=0;t<n;t++){
+    S.track.push(97-R()*4);S.scale.push(0.8+R()*1.6);S.imuok.push(1);
+    S.width.push(40+20*Math.sin(t/5)+R()*2);S.blur.push(120+R()*80);S.luma.push(110+R()*40);S.speed.push(30+R()*50);
+  }
+  ep.flags.forEach(function(f){
+    for(var t=f.a;t<f.b;t++){
+      if(f.k==="slam")S.track[t]=30+R()*50;
+      if(f.k==="scale")S.scale[t]=5.5+(t-f.a)*.4+R()*2;
+      if(f.k==="imu")S.imuok[t]=0;
+      if(f.k==="width")S.width[t]=(R()<.5?-8:118);
+      if(f.k==="blur")S.blur[t]=8+R()*28;
+      if(f.k==="exp")S.luma[t]=R()<.5?8+R()*12:238+R()*12;
+      if(f.k==="static")S.speed[t]=R()*1.5;
+    }
+    var T=TBY[f.k],len=f.b-f.a;
+    f.val=({slam:"tracking ratio "+Math.round(S.track[f.a])+"% at "+f.a+" s",scale:"drift reaches "+(S.scale[f.b-1]).toFixed(1)+"%",
+      imu:"init completed at "+f.b+" s",width:"width "+Math.round(S.width[f.a])+" mm at "+f.a+" s",blur:"Laplacian var "+Math.round(S.blur[f.a])+" (min 40)",
+      exp:"mean luma "+Math.round(S.luma[f.a])+" of 255",static:"speed "+S.speed[0].toFixed(1)+" mm/s for "+len+" s"})[f.k];
+  });
+  ep.sig=S;return ep;
+}
+for(var q=0;q<N_EP;q++)EPS.push(mkEp(q));
+
+// ---------- scoring ----------
+function active(ep){return ep.flags.filter(function(f){return !ep.dis[f.k]})}
+function mask(ep){var m=new Array(ep.n).fill(false);active(ep).forEach(function(f){for(var t=f.a;t<f.b;t++)m[t]=true});return m}
+function longestRun(ep){
+  var m=mask(ep),best=[0,0],s=-1;
+  for(var t=0;t<=ep.n;t++){
+    if(t<ep.n&&!m[t]){if(s<0)s=t}
+    else if(s>=0){if(t-s>best[1]-best[0])best=[s,t];s=-1}
+  }
+  return best;
+}
+function score(ep){
+  var m=mask(ep),bad=m.filter(Boolean).length,run=longestRun(ep),rl=run[1]-run[0];
+  var s=Math.round(100*rl/ep.n);
+  var cap=rl<MINRUN;
+  if(cap)s=Math.min(s,20);
+  return {s:s,bad:bad,run:run,rl:rl,cap:cap};
+}
+function suggest(ep){
+  var c=score(ep);
+  if(c.s>=85)return "A";
+  if(c.rl>=MINRUN&&c.s>=35)return "T";
+  return "R";
+}
+function col(s){return s>=85?"var(--ok)":s>=50?"var(--wr)":"var(--bad)"}
+
+// ---------- state ----------
+var selId=EPS.filter(function(e){return true})[0].id, cursor=0, undo=[], toastT;
+function byId(id){return EPS.filter(function(e){return e.id===id})[0]}
+function snap(){return JSON.stringify(EPS.map(function(e){return {id:e.id,dec:e.dec,dis:e.dis,trim:e.trim}}))}
+function pushUndo(){undo.push(snap());if(undo.length>200)undo.shift()}
+function restore(s){JSON.parse(s).forEach(function(o){var e=byId(o.id);e.dec=o.dec;e.dis=o.dis;e.trim=o.trim})}
+function order(){
+  var u=EPS.filter(function(e){return !e.dec}).sort(function(a,b){return score(a).s-score(b).s||a.id.localeCompare(b.id)});
+  var d=EPS.filter(function(e){return e.dec}).sort(function(a,b){return a.id.localeCompare(b.id)});
+  return {u:u,d:d,all:u.concat(d)};
+}
+function toast(m){var t=document.getElementById("toast");t.textContent=m;t.className="on";clearTimeout(toastT);toastT=setTimeout(function(){t.className=""},2200)}
+
+// ---------- actions ----------
+function advance(fromOrder,id){
+  var i=fromOrder.u.map(function(e){return e.id}).indexOf(id);
+  var nx=fromOrder.u[i+1]||fromOrder.u[i-1];
+  if(nx)selId=nx.id;
+}
+function decide(d){
+  var ep=byId(selId),o=order(),c=score(ep);
+  if(d==="T"){
+    var r=c.run;
+    if(c.rl<MINRUN){toast("Cannot trim: no clean run of "+MINRUN+" s or more. Reject or dismiss a flag.");return}
+    pushUndo();ep.trim=ep.trim&&ep.dec==="T"?ep.trim:[r[0],r[1]];
+  } else {pushUndo();if(d!=="T")ep.trim=null}
+  ep.dec=d;cursor=0;
+  var msg={A:"Accepted full "+ep.id,R:"Rejected "+ep.id,T:"Trimmed "+ep.id+" to "+ep.trim[0]+"-"+ep.trim[1]+" s"}[d];
+  if(d==="A"&&c.bad>0)msg+=" (with "+active(ep).length+" active flag(s))";
+  if(!o.u.length)return;
+  advance(o,ep.id);toast(msg);render();
+}
+function move(dx){
+  var o=order().all,i=o.map(function(e){return e.id}).indexOf(selId);
+  i=Math.max(0,Math.min(o.length-1,i+dx));selId=o[i].id;cursor=0;render(true);
+}
+function nextUndecided(){var o=order();if(o.u.length){selId=o.u[0].id;cursor=0;render(true)}}
+function toggleFlag(k){
+  var ep=byId(selId);
+  if(!ep.flags.some(function(f){return f.k===k})){toast("No "+TBY[k].name+" flag on this episode");return}
+  pushUndo();ep.dis[k]=!ep.dis[k];
+  if(ep.trim){ // keep trim valid: recompute if now overlaps nothing
+    var c=score(ep);if(ep.dec==="T")ep.trim=[c.run[0],c.run[1]];
+  }
+  toast((ep.dis[k]?"Dismissed: ":"Restored: ")+TBY[k].name+" (score "+score(ep).s+")");render();
+}
+function adjTrim(which,d){
+  var ep=byId(selId);if(!ep.trim){toast("Press T first to trim");return}
+  pushUndo();
+  if(which===0)ep.trim[0]=Math.max(0,Math.min(ep.trim[1]-1,ep.trim[0]+d));
+  else ep.trim[1]=Math.min(ep.n,Math.max(ep.trim[0]+1,ep.trim[1]+d));
+  var m=mask(ep),over=0;for(var t=ep.trim[0];t<ep.trim[1];t++)if(m[t])over++;
+  if(over)toast("Trim now includes "+over+" s of flagged data");
+  render();
+}
+function bulk(){
+  var o=order(),hits=o.u.filter(function(e){return suggest(e)==="A"&&score(e).s>=95&&!active(e).length});
+  if(!hits.length){toast("No flag-free episodes left to bulk-accept");return}
+  pushUndo();hits.forEach(function(e){e.dec="A"});
+  if(hits.some(function(e){return e.id===selId})){var o2=order();if(o2.u.length)selId=o2.u[0].id}
+  toast("Bulk accepted "+hits.length+" flag-free episodes (U to undo)");render();
+}
+
+// ---------- render ----------
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function renderList(scroll){
+  var o=order(),h="";
+  h+='<div class="sep">Review queue: worst score first ('+o.u.length+')</div>';
+  function row(e){
+    var c=score(e),s=suggest(e);
+    var fl=e.flags.map(function(f){return '<span class="'+(e.dis[f.k]?"x":"")+'" title="'+esc(TBY[f.k].name)+'">'+TBY[f.k].ab+'</span>'}).join("");
+    return '<div class="row'+(e.id===selId?" sel":"")+(e.dec?" done":"")+'" data-id="'+e.id+'"><span class="id mono">'+e.id.slice(3)+'</span><span class="chip" style="background:'+col(c.s)+'">'+c.s+'</span><span class="fl">'+(fl||'<span class="x" style="text-decoration:none">clean</span>')+'</span><span class="dv" title="'+(e.dec?"Your decision":"Suggested")+'" style="color:'+(e.dec?"var(--ac)":"var(--mu)")+'">'+(e.dec||s.toLowerCase())+'</span></div>';
+  }
+  o.u.forEach(function(e){h+=row(e)});
+  h+='<div class="sep">Decided ('+o.d.length+')</div>';
+  o.d.forEach(function(e){h+=row(e)});
+  var L=$("list"),st=L.scrollTop;L.innerHTML=h;L.scrollTop=st;
+  if(scroll){var s=L.querySelector(".sel");if(s)s.scrollIntoView({block:"nearest"})}
+}
+function renderDetail(){
+  var ep=byId(selId),c=score(ep),sg=suggest(ep),n=ep.n,S=ep.sig;
+  var m=mask(ep);
+  var h='<div class="card top"><div><div class="mu">'+ep.id+' | '+n+' s | wrist fisheye + SLAM + IMU (synthetic)</div><div class="big" style="color:'+col(c.s)+'">'+c.s+'<span class="mu" style="font-size:14px"> / 100</span></div></div>';
+  h+='<div><div>Suggested: <b>'+({A:"Accept",T:"Trim",R:"Reject"})[sg]+'</b></div><div>Your decision: <b>'+(ep.dec?({A:"Accept",T:"Trim "+(ep.trim?ep.trim[0]+"-"+ep.trim[1]+" s":""),R:"Reject"})[ep.dec]:"none yet")+'</b></div></div>';
+  h+='<div class="mu" style="max-width:420px"><b style="color:var(--tx)">Why '+c.s+'?</b> Score = longest unflagged run / episode length = '+c.rl+' s / '+n+' s'+(c.cap?'. Capped at 20 because the run is under the '+MINRUN+' s minimum.':'.')+' Flagged: '+c.bad+' s. Thresholds: Accept at 85+, Trim at 35+ with a '+MINRUN+' s clean run, otherwise Reject.</div></div>';
+  // lanes
+  h+='<div class="card"><h2>Signals over time (1 cell = 1 s). Click a lane or press 1-7 to dismiss/restore its flag.</h2>';
+  var cur=Math.min(cursor,n-1);
+  TYPES.forEach(function(T){
+    var fl=ep.flags.filter(function(f){return f.k===T.k})[0];
+    var cells="";
+    for(var t=0;t<n;t++){
+      var inF=fl&&t>=fl.a&&t<fl.b;
+      cells+='<i class="'+(inF?(ep.dis[T.k]?"d":"f"):"")+'"></i>';
+    }
+    h+='<div class="lane'+(fl?"":" off")+'" data-k="'+T.k+'"><span class="nm"><kbd>'+T.key+'</kbd> '+T.name+(fl&&ep.dis[T.k]?' (dismissed)':'')+'</span><div class="cells" style="grid-template-columns:repeat('+n+',1fr)">'+cells+
+      (ep.trim?'<span class="ov trim" style="left:'+(ep.trim[0]/n*100)+'%;width:'+((ep.trim[1]-ep.trim[0])/n*100)+'%"></span>':'')+
+      '<span class="ov cur" style="left:'+(cur/n*100)+'%"></span></div></div>';
+  });
+  // combined lane
+  var comb="";for(var t2=0;t2<n;t2++)comb+='<i class="'+(m[t2]?"f":"c")+'"></i>';
+  h+='<div class="lane" data-k=""><span class="nm"><b>Usable after flags</b></span><div class="cells" style="grid-template-columns:repeat('+n+',1fr)">'+comb+
+    '<span class="ov trim" style="left:'+(c.run[0]/n*100)+'%;width:'+(c.rl/n*100)+'%;border-style:dashed"></span>'+
+    (ep.trim?'<span class="ov trim" style="left:'+(ep.trim[0]/n*100)+'%;width:'+((ep.trim[1]-ep.trim[0])/n*100)+'%"></span>':'')+
+    '<span class="ov cur" style="left:'+(cur/n*100)+'%"></span></div></div>';
+  h+='<div class="mu" style="margin-top:6px">Dashed box = longest clean run (what T keeps). Solid box = current trim. Cursor at <b class="mono">'+cur+' s</b> (Left/Right): '+
+    '<span class="mono">track '+Math.round(S.track[cur])+'% | scale drift '+S.scale[cur].toFixed(1)+'% | IMU '+(S.imuok[cur]?"init ok":"NOT init")+' | width '+Math.round(S.width[cur])+' mm | blur '+Math.round(S.blur[cur])+' | luma '+Math.round(S.luma[cur])+' | speed '+S.speed[cur].toFixed(0)+' mm/s</span></div></div>';
+  // flags
+  h+='<div class="card"><h2>Automatic flags: every one shows its rule, measured value, and can be overridden</h2>';
+  if(!ep.flags.length)h+='<div class="mu">No automatic flags. All 7 checks passed.</div>';
+  ep.flags.forEach(function(f){
+    var T=TBY[f.k],d=ep.dis[f.k];
+    h+='<div class="flag'+(d?" dis":"")+'"><b>'+T.name+'</b> '+f.a+'-'+f.b+' s'+(T.blocker?' <span class="mu">(blocker class)</span>':'')+(d?' - <b>dismissed by you</b>':'')+
+      '<small>Rule: '+T.rule+'. Measured: '+f.val+'.</small><small>Press <kbd>'+T.key+'</kbd> to '+(d?'restore':'dismiss')+'. Dismissing removes these '+(f.b-f.a)+' s from the penalty and recomputes the score.</small></div>';
+  });
+  h+='</div>';
+  h+='<div class="card"><h2>Keyboard</h2><div class="keys">'+
+   '<span><kbd>A</kbd> accept whole episode</span><span><kbd>R</kbd> reject</span><span><kbd>T</kbd> trim to longest clean run</span>'+
+   '<span><kbd>[</kbd><kbd>]</kbd> trim start -/+ 1 s</span><span><kbd>;</kbd><kbd>\'</kbd> trim end -/+ 1 s</span><span><kbd>1</kbd>-<kbd>7</kbd> dismiss/restore flag</span>'+
+   '<span><kbd>J</kbd>/<kbd>K</kbd> or arrows Up/Down: next/prev</span><span><kbd>Left</kbd>/<kbd>Right</kbd> scrub cursor</span><span><kbd>U</kbd> undo</span>'+
+   '<span><kbd>G</kbd> bulk-accept flag-free</span><span><kbd>N</kbd> jump to worst undecided</span></div></div>';
+  $("detail").innerHTML=h;
+}
+function renderStats(){
+  var a=0,t=0,r=0,l=0,sec=0;
+  EPS.forEach(function(e){
+    if(e.dec==="A"){a++;sec+=e.n}else if(e.dec==="T"){t++;sec+=e.trim[1]-e.trim[0]}else if(e.dec==="R")r++;else l++;
+  });
+  $("sA").textContent=a;$("sT").textContent=t;$("sR").textContent=r;$("sL").textContent=l;$("sS").textContent=sec;
+  var P=function(v,c){return '<i style="width:'+(v/EPS.length*100)+'%;background:'+c+'"></i>'};
+  $("bar").innerHTML=P(a,"var(--ok)")+P(t,"var(--ac)")+P(r,"var(--bad)");
+}
+function render(scroll){renderList(scroll);renderDetail();renderStats()}
+
+// ---------- events ----------
+document.addEventListener("keydown",function(ev){
+  if(ev.ctrlKey||ev.metaKey||ev.altKey)return;
+  var k=ev.key,ep=byId(selId);
+  var lk=k.length===1?k.toLowerCase():k, used=true;
+  if(lk==="a")decide("A");
+  else if(lk==="r")decide("R");
+  else if(lk==="t")decide("T");
+  else if(lk==="u"){if(undo.length){restore(undo.pop());toast("Undone");render(true)}else toast("Nothing to undo")}
+  else if(lk==="j"||k==="ArrowDown")move(1);
+  else if(lk==="k"||k==="ArrowUp")move(-1);
+  else if(k==="ArrowRight"){cursor=Math.min(ep.n-1,cursor+1);renderDetail()}
+  else if(k==="ArrowLeft"){cursor=Math.max(0,cursor-1);renderDetail()}
+  else if(lk==="g")bulk();
+  else if(lk==="n")nextUndecided();
+  else if(k==="["){adjTrim(0,-1)}
+  else if(k==="]"){adjTrim(0,1)}
+  else if(k===";"){adjTrim(1,-1)}
+  else if(k==="'"){adjTrim(1,1)}
+  else if(/^[1-7]$/.test(k))toggleFlag(TYPES[+k-1].k);
+  else used=false;
+  if(used)ev.preventDefault();
+});
+$("list").addEventListener("click",function(ev){
+  var r=ev.target.closest(".row");if(r){selId=r.getAttribute("data-id");cursor=0;render()}
+});
+$("detail").addEventListener("click",function(ev){
+  var l=ev.target.closest(".lane");if(l&&l.getAttribute("data-k"))toggleFlag(l.getAttribute("data-k"));
+});
+selId=order().u[0].id;
+render();
+})();
+</script>
+</body>
+</html>
