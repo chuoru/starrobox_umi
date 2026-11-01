@@ -4,6 +4,18 @@ export interface Palette {
 	[k: string]: string
 }
 
+const TOKENS: Record<string, [string, string]> = {
+	bg: ['--bs-gray-100', '#f6f9fc'],
+	panel: ['--bs-white', '#ffffff'],
+	line: ['--bs-gray-200', '#e9ecef'],
+	edge: ['--bs-gray-400', '#ced4da'],
+	fg: ['--bs-gray-900', '#212529'],
+	mut: ['--bs-gray-600', '#6a7785'],
+	ok: ['--bs-success', '#41b432'],
+	lost: ['--bs-danger', '#f44337'],
+}
+const LITERALS: Palette = { kf: '#d99100', c1: '#1f6feb', c2: '#e8590c', c3: '#8e44ad' }
+
 export function useCanvas(
 	canvas: Ref<HTMLCanvasElement | null>,
 	draw: (g: CanvasRenderingContext2D, w: number, h: number, c: Palette) => void,
@@ -45,9 +57,8 @@ export function useCanvas(
 			const g = el.getContext('2d')
 			if (!g) return
 			const cs = getComputedStyle(el)
-			const c: Palette = {}
-			for (const k of ['bg', 'panel', 'line', 'fg', 'mut', 'accent', 'ok', 'lost', 'kf', 'c1', 'c2', 'c3'])
-				c[k] = cs.getPropertyValue('--' + k).trim() || '#888'
+			const c: Palette = { ...LITERALS }
+			for (const [k, [v, fallback]] of Object.entries(TOKENS)) c[k] = cs.getPropertyValue(v).trim() || fallback
 			g.setTransform(dpr, 0, 0, dpr, 0, 0)
 			g.clearRect(0, 0, w, h)
 			draw(g, w, h, c)

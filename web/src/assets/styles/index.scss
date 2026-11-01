@@ -1,0 +1,114 @@
+// Design tokens follow FCC_DASHBOARD/client (assets/styles/bootstrap-variables.scss). Variables are declared before
+// the Bootstrap import so that Bootstrap's own !default values do not win.
+$white: #fff;
+$gray-100: #f6f9fc;
+$gray-200: #e9ecef;
+$gray-300: #dee2e6;
+$gray-400: #ced4da;
+$gray-500: #adb5bd;
+$gray-600: #6a7785;
+$gray-700: #525f7f;
+$gray-800: #32325d;
+$gray-900: #212529;
+$black: #000;
+
+$blue: #5e72e4;
+$indigo: #5603ad;
+$purple: #8965e0;
+$pink: #f3a4b5;
+$red: #f5365c;
+$orange: #fb6340;
+$yellow: #ffc107;
+$green: #2dce89;
+$teal: #11cdef;
+$cyan: #2bffc6;
+
+$primary: #41b432;
+$secondary: #32303d;
+$light: #9b9b9b;
+$danger: #f44337;
+$success: $green;
+$info: $teal;
+$warning: $yellow;
+$dark: $gray-900;
+
+// Text-safe variants: the brand green fails WCAG AA as text on white (2.69:1), so green text, links, and muted text use darker values.
+$primary-text: #278020;
+$body-secondary-color: #5f6b7a;
+$link-color: $primary-text;
+$code-color: $gray-800;
+
+$body-color: $gray-700;
+$body-bg: #f8f9fe;
+$border-color: $gray-200;
+
+$font-size-base: 0.95rem;
+$font-family-base: 'Open Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+$box-shadow: 0 1px 2px rgba(#000, 0.15);
+$box-shadow-sm: 0 2px 6px rgba(#000, 0.15);
+$box-shadow-lg: 0 2px 12px rgba(#000, 0.15);
+
+$btn-padding-y: 14px;
+$btn-padding-x: 52px;
+$btn-border-radius: 9999px;
+$btn-font-size: 0.875rem;
+$btn-padding-y-sm: 10px;
+$btn-padding-x-sm: 16px;
+$btn-font-size-sm: 0.875rem;
+$btn-border-radius-sm: 6px;
+$btn-line-height-sm: 16px;
+
+$input-focus-box-shadow: none;
+$input-border-color: $light;
+
+$table-th-font-weight: 700;
+$link-decoration: none;
+$link-shade-percentage: 45%;
+
+$badge-font-size: 0.8rem;
+$badge-font-weight: 600;
+$badge-padding-y: 0.35rem;
+$badge-padding-x: 0.7rem;
+
+$alert-padding-y: 1rem;
+$alert-padding-x: 1.5rem;
+
+$card-spacer-y: 1.5rem;
+$card-spacer-x: 1.5rem;
+$card-bg: #fff;
+
+@import 'bootstrap/scss/bootstrap';
+
+:root {
+	--umi-primary-text: #{$primary-text};
+}
+
+.btn {
+	color: #fff;
+	letter-spacing: 1.6px;
+	&:hover,
+	&:disabled,
+	&.disabled,
+	&.active {
+		color: #fff;
+	}
+	&:hover {
+		opacity: 0.8;
+	}
+	&:disabled {
+		box-shadow: none;
+	}
+}
+.btn-sm {
+	line-height: 16px;
+}
+.card {
+	border: 1px solid $border-color;
+}
+.border-bottom {
+	border-bottom: 1px solid $border-color !important;
+}
+a[disabled]:hover {
+	cursor: default;
+}

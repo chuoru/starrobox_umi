@@ -8,35 +8,27 @@ defineProps<{ disabled: boolean }>()
 // Writable computeds keep real v-model behavior on the inputs, so text typed through an IME is not committed mid-word.
 const q = computed({ get: () => lens.value.q, set: (v: string) => (lens.value = update(lens.value, 'q', v)) })
 const sort = computed({ get: () => lens.value.sort, set: (v: SortKey) => (lens.value = update(lens.value, 'sort', v)) })
+const sortOptions = Object.entries(SORTS).map(([value, s]) => ({ value, text: s.label }))
 const flipDir = () => (lens.value = update(lens.value, 'dir', lens.value.dir === 'asc' ? 'desc' : 'asc'))
 </script>
 
 <template>
-	<div class="tools">
-		<input v-model="q" type="search" placeholder="Search id, scene, instruction" aria-label="Search episodes" :disabled="disabled" />
-		<label>
+	<div class="tools border-bottom">
+		<b-form-input v-model="q" class="search" type="search" size="sm" placeholder="Search id, scene, instruction" aria-label="Search episodes" :disabled="disabled" />
+		<label class="d-flex align-items-center gap-2 text-muted small">
 			Sort
-			<select v-model="sort" :disabled="disabled">
-				<option v-for="(s, key) in SORTS" :key="key" :value="key">{{ s.label }}</option>
-			</select>
+			<b-form-select v-model="sort" size="sm" :options="sortOptions" :disabled="disabled" />
 		</label>
-		<button type="button" :disabled="disabled" :aria-label="lens.dir === 'asc' ? 'Ascending' : 'Descending'" @click="flipDir">
+		<b-button size="sm" variant="default" :disabled="disabled" :aria-label="lens.dir === 'asc' ? 'Ascending' : 'Descending'" @click="flipDir">
 			{{ lens.dir === 'asc' ? 'Asc' : 'Desc' }}
-		</button>
-		<button v-if="hasFilters(lens)" type="button" class="reset" @click="lens = clearFilters(lens)">Reset all filters</button>
-		<span class="hint">Click to select, Shift-click for a range, arrows to move, O to open.</span>
+		</b-button>
+		<b-button v-if="hasFilters(lens)" size="sm" variant="primary" @click="lens = clearFilters(lens)">Reset all filters</b-button>
+		<span class="hint text-muted small">Click to select, Shift-click for a range, arrows to move, O to open.</span>
 	</div>
 </template>
 
 <style scoped>
-.tools { display: flex; gap: 10px; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--ln); background: var(--pn); flex-wrap: wrap; }
-.tools label { display: flex; align-items: center; gap: 6px; color: var(--mu); }
-input[type='search'], select { padding: 5px 9px; border: 1px solid var(--ln); border-radius: 6px; background: var(--bg); color: var(--ink); font: inherit; }
-input[type='search'] { width: 260px; }
-input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--ac); outline-offset: 1px; }
-button { padding: 5px 12px; border: 1px solid var(--ln); border-radius: 6px; background: var(--pn); color: var(--ink); cursor: pointer; font: inherit; transition: border-color 0.12s; }
-button:hover:not(:disabled) { border-color: var(--ac); }
-button:disabled, input:disabled, select:disabled { opacity: 0.5; cursor: default; }
-.reset { color: var(--ac); }
-.hint { margin-left: auto; color: var(--mu); font-size: 11px; }
+.tools { display: flex; gap: 0.75rem; align-items: center; padding: 0.75rem 1rem; flex-wrap: wrap; }
+.search { width: 260px; }
+.hint { margin-left: auto; }
 </style>

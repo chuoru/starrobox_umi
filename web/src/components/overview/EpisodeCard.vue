@@ -57,11 +57,11 @@ function key(ev: KeyboardEvent) {
 		<div class="meta">
 			<div class="r1">
 				<b class="id">{{ episode.id }}</b>
-				<span class="badge" :style="{ background: st.color }">{{ st.label }}</span>
+				<span class="badge st" :style="{ background: st.color }">{{ st.label }}</span>
 			</div>
-			<div class="mu" :title="episode.instruction">{{ episode.scene }} / {{ episode.session }} · {{ episode.camera }}</div>
-			<div class="mu num">track {{ Math.round(episode.tracking_pct) }}% · grip max {{ Math.round(episode.gripper_max_mm) }} mm</div>
-			<div class="tq"><i :style="{ width: episode.tracking_pct + '%', background: trkColor }" /></div>
+			<div class="mu text-muted" :title="episode.instruction">{{ episode.scene }} / {{ episode.session }} · {{ episode.camera }}</div>
+			<div class="mu text-muted num">track {{ Math.round(episode.tracking_pct) }}% · grip max {{ Math.round(episode.gripper_max_mm) }} mm</div>
+			<div class="progress tq" role="presentation"><div class="progress-bar" :style="{ width: episode.tracking_pct + '%', background: trkColor }" /></div>
 		</div>
 		<RouterLink
 			class="open"
@@ -75,28 +75,28 @@ function key(ev: KeyboardEvent) {
 </template>
 
 <style scoped>
-.card { position: relative; display: flex; flex-direction: column; height: 100%; background: var(--pn); border: 1px solid var(--ln); border-radius: 8px; overflow: hidden; cursor: pointer; user-select: none; transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s; }
-.card:hover { border-color: var(--mu); }
-.card:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
-.card.sel { border-color: var(--ac); box-shadow: 0 0 0 1px var(--ac); }
-.tile { position: relative; flex: none; height: 104px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4a5365; background: repeating-linear-gradient(135deg, #10131a 0 10px, #131720 10px 20px); }
-.excl .tile { opacity: 0.45; filter: grayscale(1); }
-.nopv { font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
-.dur { position: absolute; right: 6px; bottom: 6px; background: rgba(0, 0, 0, 0.6); color: #dfe3ea; font-size: 11px; padding: 1px 6px; border-radius: 4px; font-variant-numeric: tabular-nums; }
-.cb { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; border-radius: 5px; border: 1px solid #6b7588; background: rgba(0, 0, 0, 0.45); color: #0b0d12; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; opacity: 0; transition: opacity 0.12s, background 0.12s; }
+.card { position: relative; height: 100%; overflow: hidden; cursor: pointer; user-select: none; transition: border-color 0.12s, box-shadow 0.12s; }
+.card:hover { border-color: var(--bs-gray-500); }
+.card:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.card.sel { border-color: var(--bs-primary); box-shadow: 0 0 0 1px var(--bs-primary); }
+.tile { position: relative; flex: none; height: 104px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--bs-gray-600); background: var(--bs-gray-100); border-bottom: 1px solid var(--bs-border-color); }
+.excl .tile { filter: grayscale(1); }
+.excl .tile svg { opacity: 0.45; }
+.nopv { color: var(--bs-secondary-color); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+.dur { position: absolute; right: 6px; bottom: 6px; background: rgba(33, 37, 41, 0.78); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.cb { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--bs-gray-500); background: #fff; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; opacity: 0; transition: opacity 0.12s, background 0.12s; }
 .card:hover .cb, .card:focus-visible .cb, .cb.on { opacity: 1; }
-.cb.on { background: var(--ac); border-color: var(--ac); }
-.meta { padding: 7px 10px 0; font-size: 12px; min-width: 0; flex: 1; }
+.cb.on { background: var(--bs-primary); border-color: var(--bs-primary); }
+.meta { padding: 8px 10px 0; font-size: 12px; min-width: 0; flex: 1; }
 .r1 { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 .id { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.badge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 8px; color: #0b0d12; white-space: nowrap; }
-.mu { color: var(--mu); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.badge.st { font-size: 10px; padding: 0.2rem 0.5rem; color: #fff; white-space: nowrap; }
+.mu { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 .num { font-variant-numeric: tabular-nums; }
-.tq { height: 3px; background: var(--ln); margin-top: 6px; border-radius: 2px; overflow: hidden; }
-.tq i { display: block; height: 100%; }
-.open { position: absolute; right: 6px; top: 6px; font-size: 11px; color: var(--ac); text-decoration: none; padding: 1px 9px; border: 1px solid var(--ln); border-radius: 10px; opacity: 0; transition: opacity 0.12s, border-color 0.12s; background: rgba(11, 13, 18, 0.85); }
+.tq { height: 4px; margin-top: 6px; }
+.open { position: absolute; right: 6px; top: 6px; font-size: 11px; line-height: 1.4; letter-spacing: 0; padding: 1px 10px; border-radius: 9999px; border: 1px solid var(--bs-border-color); background: #fff; color: var(--umi-primary-text); opacity: 0; transition: opacity 0.12s; }
+.open:hover { color: var(--umi-primary-text); }
 .card:hover .open, .card:focus-visible .open, .open:focus-visible { opacity: 1; }
-.open:hover, .open:focus-visible { border-color: var(--ac); }
-.open:focus-visible { outline: 2px solid var(--ac); outline-offset: 1px; }
+.open:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 1px; }
 @media (prefers-reduced-motion: reduce) { .card, .cb, .open { transition: none; } }
 </style>

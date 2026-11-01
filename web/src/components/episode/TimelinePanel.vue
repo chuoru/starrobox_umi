@@ -7,7 +7,7 @@ import { useCanvas } from './useCanvas'
 const props = defineProps<{ series: EpisodeSeries; cursor: TimeCursor; lost: LostSegment[] }>()
 const canvas = ref<HTMLCanvasElement | null>(null)
 const scrubbing = ref(false)
-const GUT = 112
+const GUT = 128
 const RIGHT = 12
 
 function range(vals: (number | null)[][], pad = 0.08): [number, number] {
@@ -37,7 +37,7 @@ function hatch(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: 
 	g.clip()
 	g.strokeStyle = col
 	g.lineWidth = 1
-	g.globalAlpha = 0.5
+	g.globalAlpha = 0.6
 	for (let k = -h; k < w; k += 7) {
 		g.beginPath()
 		g.moveTo(x + k, y + h)
@@ -93,16 +93,14 @@ useCanvas(canvas, (g, w, h, c) => {
 		const lh = plotH * L.f - 4
 		y += plotH * L.f
 		g.fillStyle = c.bg
-		g.globalAlpha = 0.5
 		g.fillRect(x0, ly, span, lh)
-		g.globalAlpha = 1
 		for (const r of props.lost) {
 			const xa = X(r.start)
 			const xb = X(r.end + 1)
 			if (L.hatchLost) hatch(g, xa, ly, xb - xa, lh, c.lost)
 			else {
 				g.fillStyle = c.lost
-				g.globalAlpha = 0.1
+				g.globalAlpha = 0.14
 				g.fillRect(xa, ly, xb - xa, lh)
 				g.globalAlpha = 1
 			}
@@ -143,8 +141,10 @@ useCanvas(canvas, (g, w, h, c) => {
 				const label = 'LOST ' + ((r.end - r.start + 1) / fps).toFixed(1) + 's'
 				if (xb - xa > g.measureText(label).width + 8) {
 					g.fillStyle = '#fff'
+					g.font = '600 11px system-ui, sans-serif'
 					g.textAlign = 'center'
 					g.fillText(label, (xa + xb) / 2, ly + lh / 2)
+					g.font = '11px system-ui, sans-serif'
 				}
 			}
 			g.fillStyle = c.kf
@@ -161,7 +161,7 @@ useCanvas(canvas, (g, w, h, c) => {
 				const xa = X(r.start)
 				const xb = X(r.end + 1)
 				if (xb - xa > tw + 4) {
-					g.fillStyle = c.panel
+					g.fillStyle = c.bg
 					g.fillRect((xa + xb) / 2 - tw / 2, ly + lh / 2 - 8, tw, 16)
 					g.fillStyle = c.lost
 					g.textAlign = 'center'
@@ -193,7 +193,7 @@ useCanvas(canvas, (g, w, h, c) => {
 			g.fillText('still measured when lost', 8, ly + 56)
 			g.font = '11px system-ui, sans-serif'
 		}
-		g.strokeStyle = c.line
+		g.strokeStyle = c.edge
 		g.lineWidth = 1
 		g.strokeRect(x0 + 0.5, ly + 0.5, span, lh)
 	}
@@ -213,7 +213,7 @@ useCanvas(canvas, (g, w, h, c) => {
 	g.fillStyle = c.mut
 	g.textAlign = 'left'
 	g.font = '10px system-ui, sans-serif'
-	g.fillText('Yellow ticks = SLAM keyframes. Hatched = no SLAM pose; IMU and width stay measured.', x0, h - 5)
+	g.fillText('Amber ticks = SLAM keyframes. Hatched = no SLAM pose; IMU and width stay measured.', x0, h - 5)
 })
 
 function at(e: PointerEvent) {
@@ -237,11 +237,11 @@ function up() {
 </script>
 
 <template>
-	<section class="panel" aria-label="Timeline">
-		<canvas ref="canvas" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" />
-	</section>
+	<b-card no-body class="position-relative overflow-hidden" aria-label="Timeline">
+		<canvas ref="canvas" class="position-absolute top-0 start-0 w-100 h-100" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" />
+	</b-card>
 </template>
 
 <style scoped>
-canvas { width: 100%; height: 100%; display: block; cursor: ew-resize; touch-action: none; }
+canvas { display: block; cursor: ew-resize; touch-action: none; }
 </style>

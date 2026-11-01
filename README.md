@@ -29,7 +29,7 @@ TODO: list the tested camera models and firmware versions.
 ## Architecture
 
 - `backend/`: FastAPI. It exposes `/api/*` and runs ORB-SLAM3, which is built into the Ubuntu 22.04 image from `docker/Dockerfile`.
-- `web/`: Vue 3 with Vite and TypeScript. The Vite dev server proxies `/api` to the backend.
+- `web/`: Vue 3 with Vite and TypeScript, styled with Bootstrap 5 and Sass. The design follows `FCC_DASHBOARD/client`: `B*` wrapper components in `src/components/bootstrap/`, shared components in `src/components/shared/`, and `src/layouts/MainLayout.vue`. The Vite dev server proxies `/api` to the backend. In Docker it polls for file changes, so edits made on Windows show up.
 - `docs/ux/`: design sketches for each screen. Build the screens from them.
 
 ## Install and start

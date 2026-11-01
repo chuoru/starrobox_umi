@@ -1,7 +1,8 @@
 <script setup lang="ts">
-defineProps<{
+import { computed } from 'vue'
+
+const props = defineProps<{
 	loading: boolean
-	synthetic: boolean
 	shown: number
 	total: number
 	hoursShown: number
@@ -13,37 +14,27 @@ defineProps<{
 }>()
 
 const fmtH = (h: number) => (h < 10 ? h.toFixed(2) : h.toFixed(1))
+
+const cards = computed(() => [
+	{ label: 'episodes (shown / total)', value: `${props.shown} / ${props.total}` },
+	{ label: 'hours (shown / total)', value: `${fmtH(props.hoursShown)} / ${fmtH(props.hoursTotal)}` },
+	{ label: 'SLAM usable (ok + curated)', value: String(props.slamUsable) },
+	{ label: 'curated for training', value: `${props.curated} (${fmtH(props.curatedHours)} h)` },
+	{ label: 'median tracking (shown)', value: props.medianTracking === null ? '–' : `${Math.round(props.medianTracking)}%` },
+])
 </script>
 
 <template>
-	<header class="kpis" aria-label="Dataset summary">
-		<span v-if="synthetic" class="syn" title="At least one listed episode is flagged synthetic">SYNTHETIC</span>
-		<div class="kpi">
-			<b>{{ loading ? '–' : `${shown} / ${total}` }}</b>
-			<span>episodes (shown / total)</span>
+	<section class="row g-3 mb-3" aria-label="Dataset summary">
+		<div v-for="k in cards" :key="k.label" class="col">
+			<b-card class="h-100">
+				<div class="kpi-v">{{ loading ? '–' : k.value }}</div>
+				<div class="text-muted small">{{ k.label }}</div>
+			</b-card>
 		</div>
-		<div class="kpi">
-			<b>{{ loading ? '–' : `${fmtH(hoursShown)} / ${fmtH(hoursTotal)}` }}</b>
-			<span>hours (shown / total)</span>
-		</div>
-		<div class="kpi">
-			<b>{{ loading ? '–' : slamUsable }}</b>
-			<span>SLAM usable (ok + curated)</span>
-		</div>
-		<div class="kpi">
-			<b>{{ loading ? '–' : `${curated} (${fmtH(curatedHours)} h)` }}</b>
-			<span>curated for training</span>
-		</div>
-		<div class="kpi">
-			<b>{{ loading || medianTracking === null ? '–' : `${Math.round(medianTracking)}%` }}</b>
-			<span>median tracking (shown)</span>
-		</div>
-	</header>
+	</section>
 </template>
 
 <style scoped>
-.kpis { display: flex; gap: 28px; align-items: center; padding: 10px 16px; background: var(--pn); border-bottom: 1px solid var(--ln); flex-wrap: wrap; }
-.kpi b { font-size: 18px; display: block; font-variant-numeric: tabular-nums; line-height: 1.25; }
-.kpi span { color: var(--mu); font-size: 11px; }
-.syn { background: rgba(229, 199, 90, 0.14); color: #f0d36e; border: 1px solid rgba(229, 199, 90, 0.5); padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; }
+.kpi-v { font-size: 1.5rem; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; }
 </style>

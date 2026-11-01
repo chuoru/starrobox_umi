@@ -37,35 +37,34 @@ function onReady() {
 </script>
 
 <template>
-	<section class="panel" aria-label="Video">
-		<h2>Video</h2>
-		<video
-			v-if="detail.has_video && !failed"
-			ref="video"
-			:src="src"
-			muted
-			playsinline
-			preload="auto"
-			@loadeddata="onReady"
-			@error="failed = true"
-		/>
-		<div v-else class="ph">
-			<div class="tile">
-				<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M4 7h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zm13 3 5-3v10l-5-3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M3 21 21 3" stroke="currentColor" stroke-width="1.5"/></svg>
-				<strong>{{ detail.has_video ? 'Video could not be loaded' : 'No video imported for this episode' }}</strong>
-				<span class="mono">{{ cursor.time.value.toFixed(2) }} s · frame {{ cursor.frame.value + 1 }}/{{ count }}</span>
-			</div>
+	<b-card no-body class="overflow-hidden" role="region" aria-label="Video">
+		<div class="px-3 pt-2 pb-1">
+			<h6 class="mb-0 text-uppercase small fw-semibold">Video</h6>
 		</div>
-		<span v-if="cursor.lostSegment.value" class="warn">TRACKING LOST - pose not measured</span>
-	</section>
+		<div class="flex-grow-1 position-relative">
+			<video
+				v-if="detail.has_video && !failed"
+				ref="video"
+				class="position-absolute top-0 start-0 w-100 h-100"
+				:src="src"
+				muted
+				playsinline
+				preload="auto"
+				@loadeddata="onReady"
+				@error="failed = true"
+			/>
+			<div v-else class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3">
+				<div class="d-flex flex-column align-items-center gap-2 text-center text-muted rounded border bg-white px-5 py-4">
+					<b-icon icon="camera-video-off" class="fs-2" />
+					<strong class="text-body">{{ detail.has_video ? 'Video could not be loaded' : 'No video imported for this episode' }}</strong>
+					<span class="small font-monospace">{{ cursor.time.value.toFixed(2) }} s · frame {{ cursor.frame.value + 1 }}/{{ count }}</span>
+				</div>
+			</div>
+			<span v-if="cursor.lostSegment.value" class="badge text-bg-danger position-absolute start-50 bottom-0 mb-3 translate-middle-x fs-6">TRACKING LOST - pose not measured</span>
+		</div>
+	</b-card>
 </template>
 
 <style scoped>
-video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
-.ph { position: absolute; inset: 0; display: grid; place-items: center; background: repeating-linear-gradient(135deg, transparent 0 14px, rgb(255 255 255 / 0.015) 14px 28px); }
-.tile { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--mut); text-align: center; padding: 16px; }
-.tile strong { color: var(--fg); font-weight: 600; font-size: 14px; }
-.mono { font: 12px ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
-.warn { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: color-mix(in srgb, var(--lost) 88%, #000); color: #fff; font-weight: 700; font-size: 12px; padding: 4px 12px; border-radius: 4px; animation: pop 0.15s ease-out; }
-@keyframes pop { from { opacity: 0; transform: translate(-50%, 4px); } }
+video { object-fit: contain; display: block; background: #000; }
 </style>

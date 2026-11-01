@@ -134,22 +134,22 @@ const rangeText = computed(() => {
 </template>
 
 <style scoped>
-.hb { margin-top: 16px; }
-h3 { margin: 0 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--mu); display: flex; justify-content: space-between; align-items: center; font-weight: 600; min-height: 22px; }
+.hb { margin-top: 1rem; }
+h3 { margin: 0 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--bs-gray-700); display: flex; justify-content: space-between; align-items: center; font-weight: 600; min-height: 22px; }
 h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
-.link { background: none; border: 0; color: var(--ac); cursor: pointer; font: inherit; font-size: 12px; text-transform: none; letter-spacing: 0; padding: 2px 6px; border-radius: 4px; }
+.link { background: none; border: 0; color: var(--ok); cursor: pointer; font: inherit; font-size: 12px; text-transform: none; letter-spacing: 0; padding: 2px 6px; border-radius: 4px; }
 .link:hover { text-decoration: underline; }
-.link:focus-visible, .hist:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
-.hist { display: flex; align-items: flex-end; height: 58px; gap: 1px; cursor: col-resize; touch-action: none; user-select: none; border-bottom: 1px solid var(--ln); }
+.link:focus-visible, .hist:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.hist { display: flex; align-items: flex-end; height: 58px; gap: 1px; cursor: col-resize; touch-action: none; user-select: none; border-bottom: 1px solid var(--bs-gray-400); }
 .bin { flex: 1; position: relative; height: 100%; border-radius: 2px 2px 0 0; transition: background 0.12s; }
-.bin:hover { background: rgba(122, 162, 255, 0.08); }
-.bin.sel { background: rgba(122, 162, 255, 0.14); }
+.bin:hover { background: rgba(65, 180, 50, 0.08); }
+.bin.sel { background: rgba(65, 180, 50, 0.16); }
 .bin i, .bin u { position: absolute; bottom: 0; left: 0; right: 0; border-radius: 1px 1px 0 0; transition: height 0.18s ease, background 0.12s; text-decoration: none; }
-.bin i { background: var(--ln); }
-.bin u { background: var(--ac); opacity: 0.9; }
-.bin.off u { background: var(--mu); opacity: 0.3; }
+.bin i { background: var(--bs-gray-300); }
+.bin u { background: var(--ok); }
+.bin.off u { background: var(--bs-gray-600); opacity: 0.45; }
 .dragging .bin i, .dragging .bin u { transition: none; }
-.rng { color: var(--mu); font-size: 11px; margin-top: 3px; display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
-.rng .active { color: var(--ink); }
+.rng { color: var(--bs-gray-700); font-size: 11px; margin-top: 3px; display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+.rng .active { color: var(--bs-body-color); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { .bin i, .bin u, .bin { transition: none; } }
 </style>

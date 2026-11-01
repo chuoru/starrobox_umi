@@ -1,6 +1,9 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import 'bootstrap-icons/font/bootstrap-icons.css'
 import App from './App.vue'
+import bComponents from './components/bootstrap'
+import './assets/styles/index.scss'
 
 const router = createRouter({
 	history: createWebHistory(),
@@ -14,4 +17,4 @@ const router = createRouter({
 	],
 })
 
-createApp(App).use(router).mount('#app')
+createApp(App).use(router).use(bComponents).mount('#app')

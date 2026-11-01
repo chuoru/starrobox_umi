@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import ContentHeader from '../components/shared/ContentHeader.vue'
 import BulkBar from '../components/overview/BulkBar.vue'
 import EpisodeGrid from '../components/overview/EpisodeGrid.vue'
 import FilterRail from '../components/overview/FilterRail.vue'
@@ -24,50 +25,54 @@ const open = (id: string) => router.push(`/episode/${encodeURIComponent(id)}`)
 
 <template>
 	<div class="ov">
-		<KpiHeader v-bind="shown.kpi" :loading="blocked" :synthetic="shown.synthetic" />
+		<ContentHeader title="Overview">
+			<span v-if="shown.synthetic" class="badge text-bg-warning" title="At least one listed episode is flagged synthetic">SYNTHETIC</span>
+		</ContentHeader>
+		<KpiHeader v-bind="shown.kpi" :loading="blocked" />
 		<div class="body">
 			<FilterRail v-model:lens="lens" :facets="shown.facets" />
-			<section class="main">
+			<b-card no-body class="main">
 				<LensBar v-model:lens="lens" :disabled="blocked" />
 				<BulkBar :count="selected.size" :busy="busy" :errors="errors" @apply="applyStatus" @clear="clearSelection" @dismiss-errors="dismissErrors" />
 				<div v-if="error" class="state" role="alert">
-					<h2>Could not load episodes</h2>
-					<p>{{ error }}</p>
-					<button type="button" @click="reload">Try again</button>
+					<h5>Could not load episodes</h5>
+					<p class="text-muted">{{ error }}</p>
+					<b-button variant="primary" @click="reload">Try again</b-button>
 				</div>
 				<EpisodeGrid v-else :items="shown.view" :selected="selected" :loading="loading" :reset-key="lens" @toggle="toggleAt" @open="open">
 					<template #empty>
 						<div class="state">
 							<template v-if="!episodes.length">
-								<h2>No episodes yet</h2>
-								<p>Import a recording to create the first episode.</p>
+								<h5>No episodes yet</h5>
+								<p class="text-muted mb-0">Import a recording to create the first episode.</p>
 							</template>
 							<template v-else>
-								<h2>No episodes match these filters</h2>
-								<p>{{ episodes.length }} episodes are hidden by the current filters.</p>
-								<button type="button" @click="lens = clearFilters(lens)">Reset all filters</button>
+								<h5>No episodes match these filters</h5>
+								<p class="text-muted">{{ episodes.length }} episodes are hidden by the current filters.</p>
+								<b-button variant="primary" @click="lens = clearFilters(lens)">Reset all filters</b-button>
 							</template>
 						</div>
 					</template>
 				</EpisodeGrid>
-			</section>
+			</b-card>
 		</div>
 	</div>
 </template>
 
 <style scoped>
 .ov {
-	--bg: #12151b; --pn: #1b2029; --ink: #e6e9ef; --mu: #98a1b2; --ln: #2d3441; --ac: #7aa2ff;
-	--ok: #4cc27f; --bad: #ff7b6b; --cur: #b78cff; --exc: #8d97a8; --imp: #e0b052;
-	margin: -16px; height: calc(100vh - 45px); display: flex; flex-direction: column; background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.4;
+	--imp: #8f5500;
+	--ok: #278020;
+	--bad: #dc3545;
+	--cur: #6f42c1;
+	--exc: #6c757d;
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25rem 1.5rem 1.5rem;
 }
-.body { flex: 1; display: flex; min-height: 0; }
-.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-button:focus-visible { outline: 2px solid var(--ac); outline-offset: 1px; }
-button { padding: 5px 12px; border: 1px solid var(--ln); border-radius: 6px; background: var(--pn); color: var(--ink); cursor: pointer; font: inherit; transition: border-color 0.12s; }
-button:hover:not(:disabled) { border-color: var(--ac); }
-.state { margin: auto; text-align: center; color: var(--mu); padding: 48px 24px; }
-.state h2 { margin: 0 0 6px; font-size: 16px; color: var(--ink); font-weight: 600; }
-.state p { margin: 0 0 14px; }
-.main > .state { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.body { flex: 1; display: flex; gap: 1rem; min-height: 0; }
+.main { flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
+.state { margin: auto; text-align: center; padding: 3rem 1.5rem; }
 </style>

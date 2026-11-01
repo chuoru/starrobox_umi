@@ -77,7 +77,7 @@ useCanvas(canvas, (g, w, h, c) => {
 	g.fillStyle = c.kf
 	for (const k of props.series.keyframes) {
 		if (!pts[k]) continue
-		const q = proj(pts[k]); g.beginPath(); g.arc(q[0], q[1], 2.2, 0, 7); g.fill()
+		const q = proj(pts[k]); g.beginPath(); g.arc(q[0], q[1], 1.5, 0, 7); g.fill()
 	}
 	const p = pts[frame]
 	if (!p) return
@@ -94,13 +94,13 @@ useCanvas(canvas, (g, w, h, c) => {
 	g.setLineDash([])
 	if (!lost) {
 		g.lineWidth = 2
-		for (const [d, col] of [[[len, 0, 0], '#ff5a5a'], [[0, len, 0], '#5ae07a'], [[0, 0, len], '#5a9bff']] as [number[], string][]) {
+		for (const [d, col] of [[[len, 0, 0], '#e03131'], [[0, len, 0], '#2f9e44'], [[0, 0, len], '#1c7ed6']] as [number[], string][]) {
 			const e = proj(wp(d[0], d[1], d[2])); g.strokeStyle = col; g.beginPath(); g.moveTo(...q); g.lineTo(...e); g.stroke()
 		}
 		g.fillStyle = c.ok; g.beginPath(); g.arc(q[0], q[1], 4, 0, 7); g.fill()
 	} else {
 		g.strokeStyle = c.lost; g.lineWidth = 2; g.beginPath(); g.arc(q[0], q[1], 7, 0, 7); g.stroke()
-		g.fillStyle = c.lost; g.font = '11px system-ui, sans-serif'; g.textBaseline = 'alphabetic'; g.textAlign = 'left'
+		g.fillStyle = c.lost; g.font = '600 11px system-ui, sans-serif'; g.textBaseline = 'alphabetic'; g.textAlign = 'left'
 		g.fillText('estimate only (not SLAM)', q[0] + 12, q[1] - 8)
 	}
 })
@@ -124,24 +124,29 @@ function reset() { cam.yaw = -0.8; cam.pitch = 0.9; cam.zoom = 1 }
 </script>
 
 <template>
-	<section class="panel" aria-label="SLAM trajectory">
-		<h2>SLAM trajectory <span class="hint">drag to orbit, wheel to zoom, double-click to reset</span></h2>
-		<div class="stat">
-			<template v-if="lostNow">
-				<span class="pill lost">NO POSE</span><br>last good ({{ fmt(lastGood) }}) m
-			</template>
-			<template v-else>
-				<span class="pill ok">SLAM pose</span><br>xyz ({{ fmt(pose) }}) m
-			</template>
+	<b-card no-body class="overflow-hidden" role="region" aria-label="SLAM trajectory">
+		<div class="d-flex justify-content-between align-items-start gap-3 px-3 pt-2 pb-1">
+			<div>
+				<h6 class="mb-0 text-uppercase small fw-semibold">SLAM trajectory</h6>
+				<span class="small text-muted">drag to orbit, wheel to zoom, double-click to reset</span>
+			</div>
+			<div class="text-end small font-monospace">
+				<template v-if="lostNow">
+					<span class="badge text-bg-danger">NO POSE</span><br>last good ({{ fmt(lastGood) }}) m
+				</template>
+				<template v-else>
+					<span class="badge text-bg-success">TRACKED</span><br>xyz ({{ fmt(pose) }}) m
+				</template>
+			</div>
 		</div>
-		<canvas ref="canvas" :class="{ grabbing: dragging }" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @wheel.prevent="wheel" @dblclick="reset" />
-		<span class="note">Dashed red = tracking lost; position is an estimate, orientation from path heading.</span>
-	</section>
+		<div class="flex-grow-1 position-relative">
+			<canvas ref="canvas" class="position-absolute top-0 start-0 w-100 h-100" :class="{ grabbing: dragging }" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @wheel.prevent="wheel" @dblclick="reset" />
+		</div>
+		<div class="px-3 pb-2 small text-muted">Dashed red = tracking lost; position is an estimate, orientation from path heading.</div>
+	</b-card>
 </template>
 
 <style scoped>
-canvas { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+canvas { display: block; cursor: grab; touch-action: none; }
 canvas.grabbing { cursor: grabbing; }
-.hint { text-transform: none; letter-spacing: 0; font-weight: 400; opacity: 0.7; margin-left: 6px; }
-.note { position: absolute; left: 10px; bottom: 6px; font-size: 10px; color: var(--mut); pointer-events: none; }
 </style>

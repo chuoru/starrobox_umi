@@ -132,11 +132,11 @@ function onToggle(index: number, ev: MouseEvent | KeyboardEvent) {
 </template>
 
 <style scoped>
-.scroller { flex: 1; overflow: auto; position: relative; min-height: 0; }
+.scroller { flex: 1; overflow: auto; position: relative; min-height: 0; background: var(--bs-body-bg); }
 .spacer { position: relative; }
 .win { position: absolute; top: 0; left: 0; right: 0; display: grid; box-sizing: border-box; }
 .skel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; padding: 12px; }
-.skel { height: 184px; border-radius: 8px; border: 1px solid var(--ln); background: linear-gradient(90deg, var(--pn), #222936, var(--pn)); background-size: 200% 100%; animation: sh 1.4s linear infinite; }
+.skel { height: 184px; border-radius: var(--bs-border-radius); border: 1px solid var(--bs-border-color); background: linear-gradient(90deg, #fff, var(--bs-gray-200), #fff); background-size: 200% 100%; animation: sh 1.4s linear infinite; }
 @keyframes sh { to { background-position: -200% 0; } }
 .empty-slot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }

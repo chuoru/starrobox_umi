@@ -9,5 +9,6 @@ export default defineConfig({
 		host: '0.0.0.0',
 		port: 5173,
 		proxy: { '/api': backend },
+		watch: process.env.UMI_POLL ? { usePolling: true, interval: 300 } : undefined,
 	},
 })

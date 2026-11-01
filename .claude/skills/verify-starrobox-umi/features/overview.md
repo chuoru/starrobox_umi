@@ -28,4 +28,4 @@ cd web && npm run e2e
 - The grid is virtualized, so counting `article.card` in the DOM gives about 30, not the number of matches. Read the `N / 60` text instead.
 - The bulk steps change statuses on disk. Re-run the seed command with `--clean` afterward.
 - Not tested at 5,000 episodes. The O shortcut and the arrow keys other than End and PageUp are not driven.
-- The checks for scrolling and resizing pass on the code from before the refactor too, so they guard behavior but do not prove a bug. `virtualGrid.test.ts` is the regression test for a stale scroll offset.
+- All 29 checks also pass on the code from before the refactor (commit 7ebd6bb, run from a separate worktree with its own dev server), so they guard behavior but do not prove the old scroll bug. `virtualGrid.test.ts` is the regression test for a stale scroll offset.
